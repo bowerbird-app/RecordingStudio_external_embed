@@ -58,21 +58,6 @@ RecordingStudio::ExternalEmbed.register(
   end
 )
 
-RecordingStudio::ExternalEmbed.register(
-  RecordingStudio::ExternalEmbed::Provider.define(:dailymotion) do
-    host "www.dailymotion.com", "dai.ly"
-    embed_host "www.dailymotion.com"
-    label "Dailymotion"
-    embeds_as "https://www.dailymotion.com/embed/video/{id}"
-    canonical "https://www.dailymotion.com/video/{id}"
-    oembed endpoint: "https://www.dailymotion.com/services/oembed", thumbnail_hosts: ["s1.dmcdn.net", "s2.dmcdn.net"]
-    match content_type: :video, aspect: Rational(16, 9) do
-      path %r{\A/video/(?<id>x[a-z0-9]+)/?\z}i, hosts: %w[www.dailymotion.com]
-      path %r{\A/(?<id>x[a-z0-9]+)/?\z}i, hosts: %w[dai.ly]
-    end
-  end
-)
-
 TWITCH_CLIP_EMBED = "https://clips.twitch.tv/embed?clip={id}&#{TWITCH_PARENT_QUERY}"
 
 RecordingStudio::ExternalEmbed.register(

@@ -10,7 +10,6 @@ class DummyExternalEmbedProvidersTest < ActiveSupport::TestCase
     assert_includes keys, :vimeo
     assert_includes keys, :loom
     assert_includes keys, :wistia
-    assert_includes keys, :dailymotion
     assert_includes keys, :twitch
     assert_includes keys, :twitch_clip
   end
@@ -32,17 +31,6 @@ class DummyExternalEmbedProvidersTest < ActiveSupport::TestCase
     assert_equal :wistia, embed.provider
     assert_equal "https://fast.wistia.net/embed/iframe/x10zt19irk", embed.embed_url
     assert_equal "https://wistia.com/medias/x10zt19irk", embed.canonical_url
-  end
-
-  test "dummy sample dailymotion urls resolve to embed player" do
-    www = RecordingStudio::ExternalEmbed.resolve("https://www.dailymotion.com/video/x9c0mza")
-    short = RecordingStudio::ExternalEmbed.resolve("https://dai.ly/x9c0mza")
-
-    assert www.supported?
-    assert short.supported?
-    assert_equal :dailymotion, www.provider
-    assert_equal "https://www.dailymotion.com/embed/video/x9c0mza", www.embed_url
-    assert_equal "https://www.dailymotion.com/embed/video/x9c0mza", short.embed_url
   end
 
   test "dummy twitch embed urls include parent hosts for iframe embedding" do
