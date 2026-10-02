@@ -17,11 +17,11 @@ class DummyExternalEmbedProvidersTest < ActiveSupport::TestCase
   end
 
   test "dummy sample vimeo url resolves to player embed" do
-    embed = RecordingStudio::ExternalEmbed.resolve("https://vimeo.com/148751763")
+    embed = RecordingStudio::ExternalEmbed.resolve("https://vimeo.com/524933864")
 
     assert embed.supported?
     assert_equal :vimeo, embed.provider
-    assert_equal "https://player.vimeo.com/video/148751763", embed.embed_url
+    assert_equal "https://player.vimeo.com/video/524933864", embed.embed_url
   end
 
   test "dummy twitch embed urls include parent hosts for iframe embedding" do
