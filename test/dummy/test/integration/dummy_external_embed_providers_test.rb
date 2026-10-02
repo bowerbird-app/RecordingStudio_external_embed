@@ -23,4 +23,14 @@ class DummyExternalEmbedProvidersTest < ActiveSupport::TestCase
     assert_equal :vimeo, embed.provider
     assert_equal "https://player.vimeo.com/video/148751763", embed.embed_url
   end
+
+  test "dummy twitch embed urls include parent hosts for iframe embedding" do
+    vod = RecordingStudio::ExternalEmbed.resolve("https://www.twitch.tv/videos/456031513")
+    clip = RecordingStudio::ExternalEmbed.resolve(
+      "https://clips.twitch.tv/AmazonianIntentDiamondPhilosoraptor-eWblKfNOah8BsKjW"
+    )
+
+    assert_includes vod.embed_url, "parent=ripeness-unreached-wham.ngrok-free.dev"
+    assert_includes clip.embed_url, "parent=ripeness-unreached-wham.ngrok-free.dev"
+  end
 end

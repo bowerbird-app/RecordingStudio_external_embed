@@ -154,7 +154,8 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     view_source = File.read(File.expand_path("dummy/app/views/home/index.html.erb", __dir__))
 
     assert_includes view_source, 'title: "External embeds"'
-    assert_includes view_source, 'subtitle: "A resolved YouTube URL renders in the page. An unsupported URL does not."'
+    assert_includes view_source, "recording_studio_external_embed(url)"
+    assert_includes view_source, "demo_embeds"
     assert_includes view_source, "recording_studio_external_embed"
     assert_includes view_source, "FlatPack::Card::Component"
     assert_includes view_source, "dummy_page_nav"

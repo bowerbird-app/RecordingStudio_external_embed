@@ -9,6 +9,11 @@ end
 
 BRIGHTCOVE_ACCOUNT = "1752604549001"
 BRIGHTCOVE_PLAYER = "default_default"
+TWITCH_EMBED_PARENTS = ENV.fetch(
+  "TWITCH_EMBED_PARENTS",
+  "localhost,127.0.0.1,ripeness-unreached-wham.ngrok-free.dev"
+).split(",").map(&:strip).reject(&:empty?)
+TWITCH_PARENT_QUERY = TWITCH_EMBED_PARENTS.map { |host| "parent=#{host}" }.join("&")
 
 RecordingStudio::ExternalEmbed.register(
   RecordingStudio::ExternalEmbed::Provider.define(:vimeo) do
@@ -88,7 +93,7 @@ RecordingStudio::ExternalEmbed.register(
     host "www.twitch.tv", "twitch.tv", "player.twitch.tv"
     embed_host "player.twitch.tv"
     label "Twitch VOD"
-    embeds_as "https://player.twitch.tv/?video=v{id}"
+    embeds_as "https://player.twitch.tv/?video=v{id}&#{TWITCH_PARENT_QUERY}"
     canonical "https://www.twitch.tv/videos/{id}"
     match content_type: :video, aspect: Rational(16, 9) do
       path %r{\A/videos/(?<id>\d+)/?\z}, hosts: %w[www.twitch.tv twitch.tv]
@@ -101,7 +106,7 @@ RecordingStudio::ExternalEmbed.register(
     host "clips.twitch.tv"
     embed_host "clips.twitch.tv"
     label "Twitch clip"
-    embeds_as "https://clips.twitch.tv/embed?clip={id}"
+    embeds_as "https://clips.twitch.tv/embed?clip={id}&#{TWITCH_PARENT_QUERY}"
     canonical "https://clips.twitch.tv/{id}"
     match content_type: :video, aspect: Rational(16, 9) do
       path %r{\A/(?<id>[A-Za-z0-9_-]+)/?\z}
