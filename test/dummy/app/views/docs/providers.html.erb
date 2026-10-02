@@ -1,0 +1,196 @@
+<% dummy_page_nav(title: "Providers", back_url: root_path) %>
+
+<div class="flex w-full flex-col gap-6">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Providers",
+    subtitle: "How URLs map to embed providers in RecordingStudio::ExternalEmbed.",
+    variant: :h1
+  ) %>
+
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    A provider recognizes one or more hosts, extracts an external id from the pasted URL, and builds
+    <code class="text-(--surface-content-color)">embed_url</code> and
+    <code class="text-(--surface-content-color)">canonical_url</code> templates.
+    <code class="text-(--surface-content-color)">RecordingStudio::ExternalEmbed.resolve</code> looks up the host in the
+    catalog and delegates to that provider. See the
+    <%= link_to "embed demo", root_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>
+    for a supported YouTube URL and an unsupported lookalike host.
+  </p>
+
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    The gem ships <strong class="font-medium text-(--surface-content-color)">YouTube only</strong> as a built-in provider.
+    This dummy host also registers Vimeo, Loom, Wistia, and Twitch in
+    <code class="text-(--surface-content-color)">config/initializers/recording_studio_external_embed.rb</code>
+    for smoke tests (see sample URLs on the <%= link_to "embed demo", root_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>).
+  </p>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Registered providers",
+    subtitle: "Catalog after the dummy initializer runs (includes gem built-ins and dummy extras)."
+  ) %>
+
+  <% if @providers.any? %>
+    <%= render FlatPack::List::Component.new(divider: true) do %>
+      <% @providers.each do |provider| %>
+        <%= render FlatPack::List::Item.new(icon: :play) do %>
+          <div class="flex flex-col gap-1">
+            <span><%= provider.fetch(:label) %> (<code class="text-sm">:<%= provider.fetch(:key) %></code>)</span>
+            <span class="text-sm text-(--surface-muted-content-color)">
+              Hosts: <%= provider.fetch(:hosts).join(", ") %>
+            </span>
+          </div>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% else %>
+    <p class="text-sm text-(--surface-muted-content-color)">No providers are registered.</p>
+  <% end %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Provider.define DSL",
+    subtitle: "Parameters and builder methods (from Provider.define / register in the gem)."
+  ) %>
+
+  <% provider_dsl_rows = [
+    {
+      name: "Provider.define key",
+      required: "Required",
+      default: "None",
+      description: "Symbol catalog key (pattern: lowercase letter, then letters, digits, or underscores). Default label when label is omitted."
+    },
+    {
+      name: "host(*names)",
+      required: "Required",
+      default: "None",
+      description: "Hostnames on pasted URLs that select this provider (normalized to lowercase). At least one host is required."
+    },
+    {
+      name: "embed_host(*names)",
+      required: "Optional",
+      default: "None",
+      description: "Extra hostnames allowed in embeds_as and canonical templates (for example YouTube uses www.youtube-nocookie.com for the iframe src host)."
+    },
+    {
+      name: "label(text)",
+      required: "Optional",
+      default: "key as string",
+      description: "Display name on resolved embeds (provider_label and iframe title fallback)."
+    },
+    {
+      name: "embeds_as(template)",
+      required: "Required",
+      default: "None",
+      description: "HTTPS URL with exactly one {id} placeholder on a declared host or embed_host. Becomes embed_url (iframe src after resolve)."
+    },
+    {
+      name: "canonical(template)",
+      required: "Required",
+      default: "None",
+      description: "HTTPS canonical URL with exactly one {id} on a declared host or embed_host. Sent to oEmbed when configured."
+    },
+    {
+      name: "oembed endpoint:",
+      required: "Optional",
+      default: "None",
+      description: "Public HTTPS oEmbed JSON endpoint used to fetch title, author, and thumbnail metadata for a resolved id."
+    },
+    {
+      name: "oembed thumbnail_hosts:",
+      required: "Required with oembed",
+      default: "None",
+      description: "Allowlist of hosts; thumbnail_url from oEmbed is kept only when its host is listed."
+    },
+    {
+      name: "match content_type:",
+      required: "Required",
+      default: "None",
+      description: "Symbol stored on the embed (for example :video). At least one match block is required per provider."
+    },
+    {
+      name: "match aspect:",
+      required: "Required",
+      default: "None",
+      description: "Positive Rational frame aspect ratio for this match group (for example Rational(16, 9) or Rational(9, 16))."
+    },
+    {
+      name: "path(regexp, hosts:)",
+      required: "One of path or query per match",
+      default: "hosts: all provider hosts",
+      description: "Anchored path regexp that must capture a named id group; extracted id must match the provider id charset."
+    },
+    {
+      name: "query(param, pattern:, path:, hosts:)",
+      required: "One of path or query per match",
+      default: "hosts: all provider hosts",
+      description: "Match a query param on an anchored path (path must not capture id); pattern and captured value must be anchored and valid ids."
+    },
+    {
+      name: "RecordingStudio::ExternalEmbed.register(provider)",
+      required: "Required to publish",
+      default: "None",
+      description: "Registers the Provider instance before the catalog freezes (after_initialize). Raises Conflict on duplicate key or host."
+    }
+  ] %>
+
+  <%= render FlatPack::Table::Component.new(data: provider_dsl_rows, class: "text-sm") do |table| %>
+    <% table.column(title: "Param") { |row| row.fetch(:name) } %>
+    <% table.column(title: "Required") { |row| row.fetch(:required) } %>
+    <% table.column(title: "Default") { |row| row.fetch(:default) } %>
+    <% table.column(title: "What it does") { |row| row.fetch(:description) } %>
+  <% end %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Unsupported URLs",
+    subtitle: "No iframe is rendered when resolve does not return an Embed."
+  ) %>
+
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    Unknown hosts, malformed ids, and other rejected input become
+    <code class="text-(--surface-content-color)">RecordingStudio::ExternalEmbed::Unresolved</code>.
+    The view helper <code class="text-(--surface-content-color)">recording_studio_external_embed</code> returns an
+    empty string in that case, so the surrounding page still renders.
+  </p>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :ruby,
+    code: <<~'CODE'
+      result = RecordingStudio::ExternalEmbed.resolve("https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ")
+      result.supported? # => false
+
+      # In a view:
+      recording_studio_external_embed(result) # => ""
+    CODE
+  ) %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Register a custom provider",
+    subtitle: "Provider.define builds a provider; register adds it to the catalog before freeze."
+  ) %>
+
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    Host apps register providers from an initializer (before Rails finishes booting; the engine freezes the catalog in
+    <code class="text-(--surface-content-color)">after_initialize</code>).
+    <%= link_to "Config", docs_config_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>
+    documents oEmbed gateway timeouts in
+    <code class="text-(--surface-content-color)">recording_studio_external_embed.rb</code>—not provider registration.
+  </p>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :ruby,
+    code: <<~'CODE'
+      # config/initializers/recording_studio_external_embed_providers.rb
+      provider = RecordingStudio::ExternalEmbed::Provider.define(:clip) do
+        host "clips.test"
+        label "Clip"
+        embed_host "play.clips.test"
+        embeds_as "https://play.clips.test/e/{id}"
+        canonical "https://clips.test/v/{id}"
+        match content_type: :video, aspect: Rational(16, 9) do
+          path %r{\A/v/(?<id>[a-z0-9]{8})\z}
+        end
+      end
+
+      RecordingStudio::ExternalEmbed.register(provider)
+    CODE
+  ) %>
+</div>

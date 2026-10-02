@@ -1,25 +1,39 @@
 <% dummy_page_nav(title: "External embeds", back_url: root_path) %>
 
+<% demo_embeds = [
+  ["YouTube", "https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
+  ["Vimeo", "https://vimeo.com/524933864"],
+  ["Loom", "https://www.loom.com/share/80dbc6f9f18f47beade09f5db2707582"],
+  ["Wistia", "https://wistia.com/watch/video-strategy?wchannelid=7bl63kge0w&wmediaid=x10zt19irk"],
+  ["Twitch VOD", "https://m.twitch.tv/videos/2888602700"],
+  ["Twitch clip", "https://m.twitch.tv/caseoh_/clip/SparklyFairRatTBTacoLeft-10mLZLdWr0rj_REX"]
+] %>
+
 <div class="flex w-full flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
     title: "External embeds",
-    subtitle: "A resolved YouTube URL renders in the page. An unsupported URL does not.",
+    subtitle: "Each card resolves a sample URL with recording_studio_external_embed. Dummy-only providers are registered in the host initializer.",
     variant: :h1
   ) %>
 
   <div class="grid gap-6 lg:grid-cols-2">
-    <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
-      <% card.header do %>
-        <%= render FlatPack::PageTitle::Component.new(
-          title: "YouTube",
-          subtitle: "The helper builds the iframe from the resolved embed.",
-          variant: :h3,
-          class: "mb-0 pb-0"
-        ) %>
-      <% end %>
+    <% demo_embeds.each do |label, url| %>
+      <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
+        <% card.header do %>
+          <%= render FlatPack::PageTitle::Component.new(
+            title: label,
+            subtitle: url,
+            variant: :h3,
+            class: "mb-0 pb-0"
+          ) %>
+        <% end %>
 
-      <% card.body do %>
-        <%= recording_studio_external_embed("https://www.youtube.com/watch?v=dQw4w9WgXcQ") %>
+        <% card.body do %>
+          <%= recording_studio_external_embed(url) %>
+          <p class="mt-3 text-sm leading-6">
+            <%= link_to "Open source URL", url, class: "font-medium text-(--link-text-color) break-all underline-offset-2 hover:underline", target: "_blank", rel: "noopener noreferrer" %>
+          </p>
+        <% end %>
       <% end %>
     <% end %>
 

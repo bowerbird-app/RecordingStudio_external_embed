@@ -8,6 +8,16 @@ class DocsController < ApplicationController
     render :config
   end
 
+  def providers
+    @providers = RecordingStudio::ExternalEmbed.send(:providers).map do |provider|
+      {
+        key: provider.key,
+        label: provider.label,
+        hosts: provider.hosts.sort
+      }
+    end
+  end
+
   def recordable_types
     RecordingStudio.validate_recordable_declarations!
 

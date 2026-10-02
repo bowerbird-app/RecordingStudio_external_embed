@@ -25,19 +25,47 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     get docs_install_path
     assert_response :success
     assert_select "h1", text: "Install"
-    assert_includes response.body, "Step 1"
-    assert_includes response.body, "Provide one section title for each step"
-    assert_includes response.body, "# Put the step instruction here."
+    assert_includes response.body, "recording_studio_external_embed"
+    assert_includes response.body, "bowerbird-app/RecordingStudio_external_embed"
+    assert_includes response.body, "bundle install"
+    assert_includes response.body, "bin/rails generate recording_studio_external_embed:install"
+    assert_includes response.body, "/recording_studio_external_embed"
+    assert_includes response.body, "config/initializers/recording_studio_external_embed.rb"
+    assert_includes response.body, "--mount-path /embeds"
   end
 
   test "config page renders successfully" do
     get docs_config_path
     assert_response :success
     assert_select "h1", text: "Config"
-    expected_placeholder = "Replace this placeholder with the configuration settings your generated gem exposes."
+    assert_includes response.body, "config/initializers/recording_studio_external_embed.rb"
+    assert_includes response.body, "config.open_timeout = 1"
+    assert_includes response.body, "config.read_timeout = 2"
+    assert_includes response.body, "config.max_bytes = 65_536"
+    assert_includes response.body, "dummy host loads"
+    assert_includes response.body, "/docs/providers"
+  end
 
-    assert_includes response.body, expected_placeholder
-    assert_includes response.body, "# Add the config settings for the gem here."
+  test "providers page renders built-in catalog and registration docs" do
+    get docs_providers_path
+
+    assert_response :success
+    assert_select "h1", text: "Providers"
+    assert_includes response.body, "Registered providers"
+    assert_includes response.body, "YouTube only"
+    assert_includes response.body, "YouTube"
+    assert_includes response.body, ":youtube"
+    assert_includes response.body, "www.youtube.com"
+    assert_includes response.body, "Provider.define"
+    assert_includes response.body, "RecordingStudio::ExternalEmbed.register"
+    assert_includes response.body, "recording_studio_external_embed(result)"
+    assert_includes response.body, "# =&gt; &quot;&quot;"
+    assert_includes response.body, "not provider registration"
+    assert_includes response.body, "Provider.define DSL"
+    assert_includes response.body, "embeds_as(template)"
+    assert_includes response.body, "oembed endpoint:"
+    assert_includes response.body, "match aspect:"
+    assert_select "table", minimum: 1
   end
 
   test "recordable types page renders configured recordables dynamically" do
@@ -98,19 +126,24 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     get docs_gem_views_path
     assert_response :success
     assert_select "h1", text: "Gem Views"
-    assert_select "table", minimum: 1
+    assert_includes response.body, "head :ok"
+    assert_includes response.body, "None"
+    assert_includes response.body, "recording_studio_external_embed"
     refute_includes response.body, "app/views/recording_studio/external_embed/home/index.html.erb"
+    assert_select "table", count: 0
   end
 
   test "methods page renders successfully" do
     get docs_methods_path
     assert_response :success
     assert_select "h1", text: "Methods"
-    assert_includes response.body, "Document the public methods your addon exposes."
-    assert_includes response.body, "Example method"
-    assert_includes response.body, "recordingstudio_addon.example_method"
-    assert_includes response.body, "# Explain what this method does before the example."
-    assert_includes response.body, "Provide one section title and codeblock for each method"
+    assert_includes response.body, "RecordingStudio::ExternalEmbed.resolve"
+    assert_includes response.body, "recording_studio_external_embed"
+    assert_includes response.body, "Provider.define"
+    assert_includes response.body, "ExternalEmbed.register"
+    assert_includes response.body, "/docs/providers"
+    assert_includes response.body, "ExternalEmbed.configure"
+    assert_includes response.body, "with_providers"
   end
 
   test "authenticated docs pages use the recording studio default layout" do
@@ -119,7 +152,8 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_select "nav[aria-label='Page navigation']", count: 1
-    refute_includes response.body, "flat-pack-sidebar-layout"
+    assert_includes response.body, "data-controller=\"flat-pack--sidebar-layout\""
+    assert_includes response.body, "h-screen"
   end
 
   private

@@ -3,14 +3,48 @@
 <div class="flex w-full flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
     title: "Config",
-    subtitle: "Replace this placeholder with the configuration settings your generated gem exposes.",
+    subtitle: "oEmbed gateway timeouts and byte limits for RecordingStudio::ExternalEmbed.",
     variant: :h1
+  ) %>
+
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    The install generator writes
+    <code class="text-(--surface-content-color)">config/initializers/recording_studio_external_embed.rb</code>.
+    Use <code class="text-(--surface-content-color)">RecordingStudio::ExternalEmbed.configure</code> there to tune oEmbed
+    HTTP behavior. Provider registration uses a separate initializer—see
+    <%= link_to "Providers", docs_providers_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>.
+  </p>
+
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    This dummy host loads
+    <code class="text-(--surface-content-color)">config/initializers/recording_studio_external_embed.rb</code>
+    with the timeout block below plus extra provider registrations for smoke tests (see
+    <%= link_to "Providers", docs_providers_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>).
+  </p>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Initializer",
+    subtitle: "Same block the generator emits for oEmbed timeouts"
   ) %>
 
   <%= render FlatPack::CodeBlock::Component.new(
     language: :ruby,
     code: <<~'CODE'
-      # Add the config settings for the gem here.
+      # config/initializers/recording_studio_external_embed.rb
+      RecordingStudio::ExternalEmbed.configure do |config|
+        config.open_timeout = 1
+        config.read_timeout = 2
+        config.max_bytes = 65_536
+      end
     CODE
   ) %>
+
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    <code class="text-(--surface-content-color)">open_timeout</code> and
+    <code class="text-(--surface-content-color)">read_timeout</code> are in seconds.
+    <code class="text-(--surface-content-color)">max_bytes</code> caps how much of an oEmbed JSON response is read.
+    <code class="text-(--surface-content-color)">http</code> and
+    <code class="text-(--surface-content-color)">resolver</code> are test seams and are ignored when configuration is
+    loaded from YAML.
+  </p>
 </div>
