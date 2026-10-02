@@ -39,6 +39,29 @@ class ExternalEmbedProviderTest < Minitest::Test
     reset_catalog!
   end
 
+  def test_a_match_clause_can_override_the_default_embed_template
+    provider = RecordingStudio::ExternalEmbed::Provider.define(:dual_embed) do
+      host "videos.test"
+      embed_host "play.videos.test", "alt.play.videos.test"
+      embeds_as "https://play.videos.test/e/{id}"
+      canonical "https://videos.test/v/{id}"
+      match content_type: :video, aspect: Rational(16, 9) do
+        path %r{\A/v/(?<id>[a-z0-9]{8})\z}
+        path %r{\A/alt/(?<id>[a-z0-9]{8})\z}, embeds_as: "https://alt.play.videos.test/e/{id}"
+      end
+    end
+
+    default_embed = RecordingStudio::ExternalEmbed.with_providers(provider) do
+      RecordingStudio::ExternalEmbed.resolve("https://videos.test/v/abcd1234")
+    end
+    alt_embed = RecordingStudio::ExternalEmbed.with_providers(provider) do
+      RecordingStudio::ExternalEmbed.resolve("https://videos.test/alt/abcd1234")
+    end
+
+    assert_equal "https://play.videos.test/e/abcd1234", default_embed.embed_url
+    assert_equal "https://alt.play.videos.test/e/abcd1234", alt_embed.embed_url
+  end
+
   def test_a_template_cannot_point_the_iframe_at_an_undeclared_host
     error = assert_raises(RecordingStudio::ExternalEmbed::DefinitionError) do
       RecordingStudio::ExternalEmbed::Provider.define(:bad) do

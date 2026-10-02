@@ -46,12 +46,16 @@ module RecordingStudio
         {
           source_url: ingress.original,
           canonical_url: expand(canonical_template, external_id),
-          embed_url: expand(embed_template, external_id),
+          embed_url: expand(embed_template_for(clause), external_id),
           provider: key,
           provider_label: label,
           content_type: clause.content_type,
           external_id: external_id
         }
+      end
+
+      def embed_template_for(clause)
+        clause.embed_template || embed_template
       end
 
       def presentation_attributes(presentation, clause)
@@ -170,6 +174,7 @@ module RecordingStudio
           allowed = (@hosts + @embed_hosts).uniq
           check_template(@embed_template, allowed)
           check_template(@canonical_template, allowed)
+          @clauses.each { |clause| check_template(clause.embed_template, allowed) if clause.embed_template }
         end
 
         def valid_key?
@@ -234,28 +239,31 @@ module RecordingStudio
           @aspect = aspect
         end
 
-        def path(regexp, hosts: nil)
+        def path(regexp, hosts: nil, embeds_as: nil)
           raise DefinitionError, "path pattern must capture id" unless anchored?(regexp) && regexp.names.include?("id")
 
-          @builder.add_clause(clause_for(hosts: hosts, path: regexp, param: nil, value_pattern: nil))
+          @builder.add_clause(clause_for(hosts: hosts, path: regexp, param: nil, value_pattern: nil, embed_template: embeds_as))
         end
 
-        def query(param, pattern:, path:, hosts: nil)
+        def query(param, pattern:, path:, hosts: nil, embeds_as: nil)
           raise DefinitionError, "query path must be anchored" unless anchored?(path)
           raise DefinitionError, "query pattern must be anchored" unless anchored?(pattern)
           raise DefinitionError, "query path must not capture id" if path.names.include?("id")
 
-          @builder.add_clause(clause_for(hosts: hosts, path: path, param: param.to_s, value_pattern: pattern))
+          @builder.add_clause(
+            clause_for(hosts: hosts, path: path, param: param.to_s, value_pattern: pattern, embed_template: embeds_as)
+          )
         end
 
-        def clause_for(hosts:, path:, param:, value_pattern:)
+        def clause_for(hosts:, path:, param:, value_pattern:, embed_template:)
           Clause.new(
             hosts: selected_hosts(hosts),
             content_type: @content_type,
             aspect: @aspect,
             path: path,
             param: param,
-            value_pattern: value_pattern
+            value_pattern: value_pattern,
+            embed_template: embed_template
           )
         end
 
@@ -276,7 +284,7 @@ module RecordingStudio
       end
 
       class Clause
-        attr_reader :hosts, :content_type, :aspect, :path, :param, :value_pattern
+        attr_reader :hosts, :content_type, :aspect, :path, :param, :value_pattern, :embed_template
 
         def initialize(attrs)
           @hosts = attrs.fetch(:hosts)
@@ -285,6 +293,7 @@ module RecordingStudio
           @path = attrs.fetch(:path)
           @param = attrs.fetch(:param)
           @value_pattern = attrs.fetch(:value_pattern)
+          @embed_template = attrs[:embed_template]
           freeze
         end
 
