@@ -2,23 +2,23 @@
 
 require "test_helper"
 
-class GemTemplateTest < Minitest::Test
+class RecordingStudioExternalEmbedTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.2.2", ::GemTemplate::VERSION
+    assert_equal "0.1.0", RecordingStudio::ExternalEmbed::VERSION
   end
 
   def test_engine_exists
-    assert_kind_of Class, ::GemTemplate::Engine
+    assert_kind_of Class, RecordingStudio::ExternalEmbed::Engine
   end
 
   def test_gemspec_pins_recording_studio_4_2
-    gemspec = File.read(File.expand_path("../gem_template.gemspec", __dir__))
+    gemspec = File.read(File.expand_path("../recording_studio_external_embed.gemspec", __dir__))
 
     assert_includes gemspec, 'spec.add_dependency "recording_studio", "~> 4.2"'
   end
 
   def test_gemspec_excludes_cursor_config
-    spec = Gem::Specification.load(File.expand_path("../gem_template.gemspec", __dir__))
+    spec = Gem::Specification.load(File.expand_path("../recording_studio_external_embed.gemspec", __dir__))
     cursor_files = spec.files.select { |path| path == ".cursor" || path.split("/").include?(".cursor") }
 
     assert_empty cursor_files, "gemspec must not package .cursor/ (got #{cursor_files.inspect})"
@@ -28,7 +28,7 @@ class GemTemplateTest < Minitest::Test
     path = File.expand_path("../.cursor/environment.json", __dir__)
     json = JSON.parse(File.read(path))
 
-    assert_equal "recording-studio-gem-template", json["name"]
+    assert_equal "recording-studio-external-embed", json["name"]
     assert_equal ".cursor/install.sh", json["install"]
     assert_equal ".cursor/start.sh", json["start"]
     refute json.key?("snapshot"), "snapshot pins a Personal build and skips install"
@@ -68,27 +68,12 @@ class GemTemplateTest < Minitest::Test
     assert_includes migration, "add_column :recording_studio_accesses, :depends_on_recording_id, :uuid"
   end
 
-  def test_template_does_not_ship_copied_core_hooks_or_base_service
-    refute File.exist?(File.expand_path("../lib/gem_template/hooks.rb", __dir__))
-    refute File.exist?(File.expand_path("../lib/gem_template/services/base_service.rb", __dir__))
-    refute File.exist?(File.expand_path("../lib/gem_template/services/example_service.rb", __dir__))
-  end
-
-  def test_example_capability_wraps_include_for_and_is_not_enabled_globally
-    source = File.read(File.expand_path("../lib/gem_template/capabilities/example.rb", __dir__))
-
-    assert_includes source, "def self.to(**)"
-    assert_includes source, "RecordingStudio::Capabilities.include_for(:example, **)"
-    refute_includes source, "enable_capability"
-    refute_includes source, "set_capability_options"
-    refute RecordingStudio.capability_enabled?(:example, for: "Folder")
-    refute RecordingStudio.capability_enabled?(:example, for: "Page")
-    assert_empty RecordingStudio.configuration.enabled_recordable_types_for(:example)
+  def test_gem_does_not_ship_a_database_migration
+    assert_empty Dir.glob(File.expand_path("../db/migrate/*.rb", __dir__))
   end
 
   def test_dummy_app_uses_recording_studio_default_layout
-    application_controller_path = File.expand_path("dummy/app/controllers/application_controller.rb", __dir__)
-    controller_source = File.read(application_controller_path)
+    controller_source = File.read(File.expand_path("dummy/app/controllers/application_controller.rb", __dir__))
 
     assert_includes controller_source, "include RecordingStudio::UsesDefaultLayout"
     assert_includes controller_source, '"recording_studio/default_layout"'
@@ -122,8 +107,7 @@ class GemTemplateTest < Minitest::Test
   end
 
   def test_recording_studio_keeps_strict_recordable_declarations_enabled
-    initializer_path = File.expand_path("dummy/config/initializers/recording_studio.rb", __dir__)
-    initializer_source = File.read(initializer_path)
+    initializer_source = File.read(File.expand_path("dummy/config/initializers/recording_studio.rb", __dir__))
 
     assert_includes initializer_source, "config.require_recordable_declarations = true"
     assert_includes initializer_source, "config.recordable_types = [ \"Workspace\", \"Folder\", \"Page\" ]"
@@ -133,22 +117,22 @@ class GemTemplateTest < Minitest::Test
   end
 
   def test_dummy_readme_explains_dummy_app_purpose
-    readme_path = File.expand_path("dummy/README.md", __dir__)
-    readme_source = File.read(readme_path)
+    readme_source = File.read(File.expand_path("dummy/README.md", __dir__))
 
-    assert_includes readme_source, "This Rails app exists to validate the Recording Studio addon template"
+    assert_includes readme_source, "This Rails app is the host sandbox for RecordingStudio::ExternalEmbed."
     assert_includes readme_source, "/recording_studio"
     assert_includes readme_source, "redirects to `/`"
     refute_includes readme_source, "flat_pack_sidebar"
   end
 
-  def test_product_readme_is_the_template_guide
+  def test_product_readme_explains_the_embed_boundary
     readme = File.read(File.expand_path("../README.md", __dir__))
 
-    assert_includes readme, "RecordingStudio"
-    assert_includes readme, "v4.2.0"
-    assert_includes readme, "v0.1.177"
-    assert_includes readme, "v0.9.1"
+    assert_includes readme, "RecordingStudio::ExternalEmbed"
+    assert_includes readme, "RecordingStudioEmbeddable"
+    assert_includes readme, "youtube-nocookie.com/embed"
+    assert_includes readme, "Provider.define"
+    assert_includes readme, "Rails 8.1, and `recording_studio` 4.2"
     refute_includes readme, "v0.1.133"
     refute_includes readme, "v3 declarations"
     refute_includes readme, "RecordingStudio v3"
@@ -156,12 +140,12 @@ class GemTemplateTest < Minitest::Test
     refute_includes readme, "recording_studio/v3.0.0"
   end
 
-  def test_dummy_home_page_uses_demo_title_only
-    view_path = File.expand_path("dummy/app/views/home/index.html.erb", __dir__)
-    view_source = File.read(view_path)
+  def test_dummy_home_page_renders_an_external_embed
+    view_source = File.read(File.expand_path("dummy/app/views/home/index.html.erb", __dir__))
 
-    assert_includes view_source, 'title: "Template Demo"'
-    assert_includes view_source, 'subtitle: "This dummy app is the browser-facing demo surface for the template."'
+    assert_includes view_source, 'title: "External embeds"'
+    assert_includes view_source, 'subtitle: "A resolved YouTube URL renders in the page. An unsupported URL does not."'
+    assert_includes view_source, "recording_studio_external_embed"
     assert_includes view_source, "FlatPack::Card::Component"
     assert_includes view_source, "dummy_page_nav"
     refute_includes view_source, 'title: "Demo"'
@@ -177,10 +161,10 @@ class GemTemplateTest < Minitest::Test
     docs_view_paths.each do |view_path|
       view_source = File.read(view_path)
 
-      assert_includes view_source, "dummy_page_nav"
-      assert_includes view_source, "FlatPack::PageTitle::Component"
-      refute_includes view_source, "FlatPack::Card::Component"
-      refute_includes view_source, "FlatPack::Breadcrumb::Component"
+      assert_includes view_source, "dummy_page_nav", view_path
+      assert_includes view_source, "FlatPack::PageTitle::Component", view_path
+      refute_includes view_source, "FlatPack::Card::Component", view_path
+      refute_includes view_source, "FlatPack::Breadcrumb::Component", view_path
     end
 
     methods_view = File.read(File.expand_path("dummy/app/views/docs/methods.html.erb", __dir__))
@@ -201,20 +185,9 @@ class GemTemplateTest < Minitest::Test
     refute_includes recordings_tree_view, "This tree is generated from RecordingStudio::Recording records"
   end
 
-  def test_dummy_recordings_tree_view_omits_structure_section_copy
-    recordings_tree_view = File.read(File.expand_path("dummy/app/views/docs/recordings_tree.html.erb", __dir__))
-
-    assert_includes recordings_tree_view, 'title: "Recordings tree"'
-    assert_includes recordings_tree_view, "FlatPack::Tree::Component"
-    recording_tree_partial = File.read(File.expand_path("dummy/app/views/docs/_recording_tree_node.html.erb", __dir__))
-    assert_includes recording_tree_partial, "parent_builder.node"
-    refute_includes recordings_tree_view, "Current structure"
-    refute_includes recordings_tree_view, "This tree is generated from RecordingStudio::Recording records"
-  end
-
   def test_engine_does_not_ship_a_home_view
-    view_path = File.expand_path("../app/views/gem_template/home/index.html.erb", __dir__)
-
-    refute File.exist?(view_path)
+    refute File.exist?(
+      File.expand_path("../app/views/recording_studio/external_embed/home/index.html.erb", __dir__)
+    )
   end
 end

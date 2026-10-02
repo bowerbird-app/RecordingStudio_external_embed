@@ -1,170 +1,156 @@
-# GemTemplate
+# Recording Studio External Embed
 
-Internal template for building Rails engine addons on top of Recording Studio 4.x.
+`RecordingStudio::ExternalEmbed` turns an external URL into one embed value and one iframe. A Recording Studio page can render that iframe without knowing which provider recognized the URL.
 
-## What's Included
+`RecordingStudioEmbeddable` makes Recording Studio content embeddable on other sites. This gem does the other direction. It resolves and renders externally hosted content inside Recording Studio applications.
 
-- **Recording Studio** 4.x gem pinned and configured
-- **Devise** authentication with a pre-seeded admin user
-- **Workspace**, **Folder**, and **Page** recordables seeded into the dummy host app
-- **FlatPack** UI component library for all views
-- **Dummy app** (`test/dummy/`) with a FlatPack sign-in screen, a home page on Recording Studio's default layout, mounted Recording Studio routes, and FlatPack's built-in rounded theme
+The gem does not store embeds, download media, or call the YouTube Data API.
 
-Authenticated dummy pages use Recording Studio's shared default layout (`RecordingStudio::UsesDefaultLayout`) plus FlatPack CSS and JS. Devise keeps its own sign-in layout. Dummy `/docs/*` pages stay in the dummy app as a host-app sandbox; they are not the product README.
+## Install the gem
 
-## Quick Start
-
-### Cursor Cloud Agent (Recommended)
-
-A Cloud Agent boots this repo into a ready-to-use dev environment with no manual steps. The setup lives in `.cursor/`:
-
-- `install.sh` provisions Ruby (pinned by `.ruby-version`), PostgreSQL 16, all gems, the seeded dummy database, and compiled CSS at build time, then fetches Recording Studio skills.
-- `start.sh` starts PostgreSQL on every boot.
-- `environment.json` runs the `rails-server` and `tailwind-watch` terminals and exposes port 3000.
-
-Open port 3000 and sign in at `/users/sign_in`. No environment variables are required — the dummy app's `database.yml` defaults match the provisioned PostgreSQL cluster.
-
-### GitHub Codespaces
-
-1. Click **Code** → **Codespaces** → **Create codespace**
-2. Wait for setup to complete
-3. Run:
-   ```bash
-   cd test/dummy
-   bin/rails db:setup
-   bin/dev
-   ```
-4. Open port 3000 — you'll land on the dummy app home page and can sign in at `/users/sign_in`
-
-The dummy app is intended as a host-app validation surface for authentication, FlatPack rendering, Tailwind source scanning, and Recording Studio route wiring.
-
-### Login Credentials
-
-| Field    | Value             |
-|----------|-------------------|
-| Email    | admin@admin.com   |
-| Password | Password          |
-
-The login form is prefilled with these credentials for fast access.
-
-### Useful Routes
-
-- `/` — dummy app home page
-- `/users/sign_in` — Devise sign-in page
-- `/recording_studio` — redirect to `/` while the mounted Recording Studio engine remains data/API-focused
-- `/docs/install`, `/docs/config`, `/docs/recordable_types`, `/docs/recordings_tree`, `/docs/gem_views`, `/docs/methods` — dummy-only starter pages
-
-The home page in `test/dummy/app/views/home/index.html.erb` is a starting point for a minimal demo of the gem's primary behavior. Keep deeper explanations on the dummy docs pages, not in this README.
-
-## Architecture
-
-### Root Recording Pattern
-
-This template follows Recording Studio's root recording pattern:
-
-- **Workspace** is the top-level recordable
-- **Folder** and **Page** demonstrate nested recordables under the workspace root
-- Each configured recordable declares `recording_studio_recordable(...)`; strict declaration validation stays enabled
-- A root `RecordingStudio::Recording` wraps the Workspace
-- `Current.actor` is set from `current_user` (Devise) in `ApplicationController`
-
-### Extending Recording Studio
-
-To add new recordable types:
-
-1. Create your model (e.g., `Page`, `Comment`)
-2. Register it in `config/initializers/recording_studio.rb`:
-   ```ruby
-   RecordingStudio.configure do |config|
-     config.recordable_types = ["Workspace", "YourNewType"]
-   end
-   ```
-3. Declare whether the model can be a root and which parents may contain it:
-   ```ruby
-   class YourNewType < ApplicationRecord
-     recording_studio_recordable label: "Your new type",
-                                 root: false,
-                                 allowed_parent_types: ["Workspace", "Folder"]
-   end
-   ```
-4. Validate declarations and create recordings under the root:
-   ```ruby
-   RecordingStudio.validate_recordable_declarations!
-   root_recording = RecordingStudio.root_recording_for(workspace)
-   root_recording.record(YourNewType) do |record|
-     record.title = "Example"
-   end
-   ```
-
-### Recordable Declarations
-
-Every configured ActiveRecord recordable type must declare its hierarchy rules. Declarations are required; they are not version-specific.
-
-- `Workspace` declares `root: true`
-- `Folder` and `Page` declare `root: false, allowed_parent_types: ["Workspace", "Folder"]`
-- `config.require_recordable_declarations = true` remains enabled in the dummy app initializer
-
-Useful console checks:
+Add the gem to the host application and install the mount.
 
 ```ruby
-RecordingStudio.validate_recordable_declarations!
-RecordingStudio.root_recordable_types
-RecordingStudio.allowed_parent_types_for("Page")
+gem "recording_studio_external_embed", github: "bowerbird-app/RecordingStudio_external_embed"
 ```
 
-### Capabilities
+```bash
+bundle install
+bin/rails generate recording_studio_external_embed:install
+```
 
-Capability mixins are opt-in. Installing this gem does not enable mixins on host types.
+The generator mounts `RecordingStudio::ExternalEmbed::Engine` at `/recording_studio_external_embed` and writes `config/initializers/recording_studio_external_embed.rb`. Pass `--mount-path /embeds` to choose another prefix.
 
-The dummy Workspace enables Accessible because that addon is bundled:
+The gem requires Ruby 3.3 or newer, Rails 8.1, and `recording_studio` 4.2.
+
+## Resolve a URL
 
 ```ruby
-RecordingStudio.enable_capability(:accessible, on: Workspace)
+embed = RecordingStudio::ExternalEmbed.resolve(
+  "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+)
+
+embed.supported?     # true
+embed.provider       # :youtube
+embed.content_type   # :video
+embed.external_id    # "dQw4w9WgXcQ"
+embed.embed_url      # "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"
+embed.aspect_ratio   # (16/9)
 ```
 
-The template also ships one example mixin that uses core 4.2.0's `include_for` factory:
+`resolve` returns `RecordingStudio::ExternalEmbed::Embed` when a provider recognizes the URL. The embed carries `source_url`, `canonical_url`, `provider`, `provider_label`, `content_type`, `external_id`, `title`, `description`, `author_name`, `author_url`, `thumbnail_url`, `embed_url`, `width`, `height`, and `aspect_ratio`. A provider leaves a field nil when it has no value for that field. YouTube leaves `title`, `description`, `author_name`, `author_url`, and `thumbnail_url` nil because playback does not need a network call.
+
+## Render an embed
+
+In a view, pass the embed or the original URL.
+
+```erb
+<%= recording_studio_external_embed(embed) %>
+<%= recording_studio_external_embed("https://youtu.be/dQw4w9WgXcQ") %>
+```
+
+The helper emits one responsive wrapper and one iframe. The iframe `src` is `embed_url`. The wrapper uses the embed aspect ratio. The iframe loads lazily, allows fullscreen, and does not set a sandbox. An unsupported value renders an empty string, so the parent page still renders.
+
+## Recognize a YouTube URL
+
+YouTube is the built-in provider. These URL shapes resolve to the same video id and the same embed URL.
+
+- `https://www.youtube.com/watch?v=VIDEO_ID`
+- `https://youtube.com/watch?v=VIDEO_ID`
+- `https://m.youtube.com/watch?v=VIDEO_ID`
+- `https://youtu.be/VIDEO_ID`
+- `https://www.youtu.be/VIDEO_ID`
+- `https://www.youtube.com/shorts/VIDEO_ID`
+- `https://www.youtube.com/embed/VIDEO_ID`
+
+`http` and `https` both work. A trailing dot on the host is ignored. Extra query parameters such as `t` and `list` are ignored. A video id is 11 characters from `A-Z`, `a-z`, `0-9`, `_`, and `-`.
+
+Watch, youtu.be, and embed URLs use a 16 by 9 frame. Shorts use a 9 by 16 frame. Both content types are `:video`.
+
+The embed URL is always `https://www.youtube-nocookie.com/embed/VIDEO_ID`. The canonical URL is always `https://www.youtube.com/watch?v=VIDEO_ID`.
+
+## See how a URL is resolved
+
+`RecordingStudio::ExternalEmbed.resolve` parses the URL, looks up the host, and asks that provider to build an embed.
+
+1. The parser accepts only `http` and `https`. It rejects blanks, userinfo, an explicit port, and any other scheme.
+2. The host is matched exactly. `youtube.com.evil.example` is not YouTube.
+3. The matching provider extracts an id with its own path or query rule.
+4. The provider fills `embed_url` and `canonical_url` from templates that contain that id.
+5. If the provider declared an oEmbed endpoint, the gateway asks that endpoint for title, author, and thumbnail. YouTube does not declare one.
+
+A host with no provider returns an unsupported result. A known host with a missing or illegal id returns a malformed result. The result has no `embed_url` method, so a caller cannot render a half-built iframe.
+
+## Use oEmbed for metadata
+
+oEmbed is a provider option, not a second public API. Declare it when you define a provider.
 
 ```ruby
-include RecordingStudio::Capabilities::Example.to(label: "dummy workspace")
+oembed endpoint: "https://oembed.example.test/oembed", thumbnail_hosts: ["img.example.test"]
 ```
 
-`.to` wraps `RecordingStudio::Capabilities.include_for`. It does not add a fourth verb and it does not call `enable_capability` / `set_capability_options` itself. Folder and Page stay without the example mixin.
+The endpoint must be `https` on a public DNS name, with no userinfo and no explicit port. The gateway resolves that name and refuses the request when any answer is loopback, private, link-local, or otherwise non-public. It connects to the checked address, follows no redirects, and stops at the configured byte limit. `open_timeout` defaults to 1 second. `read_timeout` defaults to 2 seconds. `max_bytes` defaults to 65536.
 
-Use core `RecordingStudio::Hooks` and `RecordingStudio::Services::BaseService`. Do not copy those classes into a new addon.
+The request sends the canonical URL, not the pasted URL, and asks for JSON. The gateway copies `title`, `author_name`, `author_url`, and `thumbnail_url`. It deletes `html`. A thumbnail is kept only when its host is in `thumbnail_hosts`. A failed response still returns the embed, with those fields nil.
 
-### FlatPack UI Components
+YouTube does not use this path. Its iframe URL is built from the video id alone.
 
-All views use FlatPack ViewComponents. Available components include:
+## Add a provider
 
-- `FlatPack::Button::Component` — Buttons (`:primary`, `:secondary`, `:ghost`)
-- `FlatPack::Card::Component` — Cards (`:default`, `:elevated`, `:outlined`)
-- `FlatPack::Alert::Component` — Alerts (`:success`, `:error`, `:warning`, `:info`)
-- `FlatPack::Badge::Component` — Status badges
-- `FlatPack::Table::Component` — Data tables
-- `FlatPack::TextInput::Component`, `EmailInput`, `PasswordInput` — Form inputs
-- `FlatPack::PageNav::Component` — Default-layout page navigation
-- `FlatPack::PageTitle::Component` — Page titles
+Define a provider and register it from a host initializer. Do this before Rails finishes booting. The engine freezes the catalog in `after_initialize`.
 
-Use the live FlatPack demo app at [flatpack.bowerbird.io](https://flatpack.bowerbird.io/) as the approved UI reference for current shared patterns. Its component table is the fastest way to discover available FlatPack components before introducing new custom UI.
+```ruby
+provider = RecordingStudio::ExternalEmbed::Provider.define(:clip) do
+  host "clips.test"
+  label "Clip"
+  embed_host "play.clips.test"
+  embeds_as "https://play.clips.test/e/{id}"
+  canonical "https://clips.test/v/{id}"
+  match content_type: :video, aspect: Rational(16, 9) do
+    path %r{\A/v/(?<id>[a-z0-9]{8})\z}
+  end
+end
 
-See the [FlatPack README](https://github.com/bowerbird-app/flatpack) for full documentation.
+RecordingStudio::ExternalEmbed.register(provider)
+```
 
-## Tech Stack
+`embeds_as` and `canonical` must be `https` URLs with exactly one `{id}` placeholder. Each template host must be one of the `host` or `embed_host` names. A path pattern must be anchored and must capture `id`. Query rules take an anchored path and an anchored value pattern.
 
-| Component       | Version |
-|-----------------|---------|
-| Ruby            | 3.3+    |
-| Rails           | 8.1+    |
-| PostgreSQL      | 16      |
-| TailwindCSS     | 4       |
-| RecordingStudio | 4.x (`~> 4.2` in the gemspec; dummy GitHub tag `v4.2.0`) |
-| Accessible      | dummy GitHub tag `v0.9.1` |
-| Root Switchable | dummy GitHub tag `v0.5.0` |
-| FlatPack        | dummy GitHub tag `v0.1.177` |
-| Devise          | latest  |
+`register` raises `RecordingStudio::ExternalEmbed::Conflict` when the key or a host is already taken, and when the catalog is already frozen. Tests can pass a temporary catalog to `with_providers` without editing the built-in YouTube provider. `replace: true` drops the built-in catalog for the duration of the block.
 
-The dummy Gemfile keeps `github:` sources so Bundler can fetch those gems. The gemspec still pins `recording_studio` to `~> 4.2` so copied addons declare the core dependency even when GitHub is the fetch source.
+Timeouts can be set in the same initializer. `http` and `resolver` are test seams and are ignored when configuration is loaded from YAML.
 
-## Documentation
+```ruby
+RecordingStudio::ExternalEmbed.configure do |config|
+  config.open_timeout = 1
+  config.read_timeout = 2
+  config.max_bytes = 65_536
+end
+```
 
-The original gem template documentation is preserved in `docs/gem_template/` as architectural reference material. Use it as background on the engine conventions; this README and the dummy app are the source of truth for the Recording Studio addon workflow.
+## Treat every URL as untrusted
+
+The parser rejects `javascript:`, `data:`, and `file:` URLs. It also rejects userinfo and an explicit port, including port 443.
+
+A provider cannot point `embed_url` at a host it did not declare. The iframe `src` is that constructed URL, escaped, and never a string of HTML from the visitor or from oEmbed. Titles are escaped. Remote HTML is not marked safe.
+
+A lookalike host such as `youtube.com.evil.example` does not match YouTube. A malformed video id does not produce an embed URL.
+
+## Handle an unsupported URL
+
+`supported?` and `valid?` are false for every failure. `errors` contains one static message. `reason` is `:invalid`, `:unsupported`, or `:malformed`.
+
+| Reason | When |
+| --- | --- |
+| `:invalid` | The input is blank, too long, not a URL, or not `http` or `https`. |
+| `:unsupported` | The host is not in the catalog. |
+| `:malformed` | The host is known and the id is missing or illegal. |
+
+```ruby
+result = RecordingStudio::ExternalEmbed.resolve("https://example.com/watch?v=abc")
+result.supported?  # false
+result.reason      # :unsupported
+result.errors      # ["That URL is not from a supported provider."]
+```
+
+`recording_studio_external_embed` renders nothing for that result.
