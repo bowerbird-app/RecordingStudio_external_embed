@@ -1,0 +1,66 @@
+<% root_switch_url = recording_studio_root_switchable.root_switch_path(scope: "all_workspaces") %>
+<%= render FlatPack::Sidebar::Component.new(collapsible: false, side: :left, class: "shrink-0") do |sidebar| %>
+  <% sidebar.header do %>
+    <%= render FlatPack::Sidebar::Header::Component.new(
+      brand_abbr: "EE",
+      title: "External embed",
+      subtitle: "Dummy host"
+    ) %>
+  <% end %>
+
+  <% sidebar.items do %>
+    <nav class="space-y-1 py-4" aria-label="Demo and docs">
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        text: "Embed demo",
+        href: main_app.root_path,
+        icon: :play,
+        active: current_page?(main_app.root_path)
+      ) %>
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        text: "Install",
+        href: main_app.docs_install_path,
+        icon: :arrow_down_tray,
+        active: current_page?(main_app.docs_install_path)
+      ) %>
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        text: "Config",
+        href: main_app.docs_config_path,
+        icon: :cog_6_tooth,
+        active: current_page?(main_app.docs_config_path)
+      ) %>
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        text: "Methods",
+        href: main_app.docs_methods_path,
+        icon: :code_bracket,
+        active: current_page?(main_app.docs_methods_path)
+      ) %>
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        text: "Gem views",
+        href: main_app.docs_gem_views_path,
+        icon: :rectangle_stack,
+        active: current_page?(main_app.docs_gem_views_path)
+      ) %>
+
+      <%= render FlatPack::Sidebar::SectionTitle::Component.new(title: "Host demos") %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        text: "Recordable types",
+        href: main_app.docs_recordable_types_path,
+        icon: :squares_2x2,
+        active: current_page?(main_app.docs_recordable_types_path)
+      ) %>
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        text: "Recordings tree",
+        href: main_app.docs_recordings_tree_path,
+        icon: :queue_list,
+        active: current_page?(main_app.docs_recordings_tree_path)
+      ) %>
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        text: "Root / workspace switcher",
+        href: root_switch_url,
+        icon: :arrows_right_left,
+        active: request.path.start_with?("/recording_studio_root_switchable")
+      ) %>
+    </nav>
+  <% end %>
+<% end %>
