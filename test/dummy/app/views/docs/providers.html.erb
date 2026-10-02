@@ -68,13 +68,11 @@
   ) %>
 
   <p class="text-sm leading-6 text-(--surface-muted-content-color)">
-    The dummy
-    <%= link_to "Config", docs_config_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>
-    page is still a placeholder and does not document provider registration. Host apps register providers from an
-    initializer (before Rails finishes booting; the engine freezes the catalog in
+    Host apps register providers from an initializer (before Rails finishes booting; the engine freezes the catalog in
     <code class="text-(--surface-content-color)">after_initialize</code>).
-    Use <code class="text-(--surface-content-color)">RecordingStudio::ExternalEmbed.configure</code> only for oEmbed
-    gateway timeouts and related options—not for adding providers.
+    <%= link_to "Config", docs_config_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>
+    documents oEmbed gateway timeouts in
+    <code class="text-(--surface-content-color)">recording_studio_external_embed.rb</code>—not provider registration.
   </p>
 
   <%= render FlatPack::CodeBlock::Component.new(

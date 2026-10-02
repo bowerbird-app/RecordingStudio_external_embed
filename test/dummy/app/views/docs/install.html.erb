@@ -3,19 +3,54 @@
 <div class="flex w-full flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
     title: "Install",
-    subtitle: "Host-app setup for the dummy Recording Studio application.",
+    subtitle: "Add RecordingStudio::ExternalEmbed to a host Rails app and mount the engine.",
     variant: :h1
   ) %>
 
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    The gem requires Ruby 3.3 or newer, Rails 8.1, and <code class="text-(--surface-content-color)">recording_studio</code> 4.2.
+  </p>
+
   <%= render FlatPack::SectionTitle::Component.new(
     title: "Step 1",
-    subtitle: "Provide one section title for each step",
+    subtitle: "Add the gem to the host Gemfile"
+  ) %>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :ruby,
+    code: <<~'CODE'
+      gem "recording_studio_external_embed", github: "bowerbird-app/RecordingStudio_external_embed"
+    CODE
+  ) %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Step 2",
+    subtitle: "Install dependencies"
   ) %>
 
   <%= render FlatPack::CodeBlock::Component.new(
     language: :bash,
-    code: <<~CODE
-      # Put the step instruction here.
+    code: <<~'CODE'
+      bundle install
     CODE
   ) %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Step 3",
+    subtitle: "Run the install generator"
+  ) %>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :bash,
+    code: <<~'CODE'
+      bin/rails generate recording_studio_external_embed:install
+    CODE
+  ) %>
+
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    The generator mounts <code class="text-(--surface-content-color)">RecordingStudio::ExternalEmbed::Engine</code> at
+    <code class="text-(--surface-content-color)">/recording_studio_external_embed</code> by default and writes
+    <code class="text-(--surface-content-color)">config/initializers/recording_studio_external_embed.rb</code>.
+    Pass <code class="text-(--surface-content-color)">--mount-path /embeds</code> to choose another URL prefix.
+  </p>
 </div>

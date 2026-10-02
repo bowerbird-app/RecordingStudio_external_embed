@@ -25,19 +25,25 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     get docs_install_path
     assert_response :success
     assert_select "h1", text: "Install"
-    assert_includes response.body, "Step 1"
-    assert_includes response.body, "Provide one section title for each step"
-    assert_includes response.body, "# Put the step instruction here."
+    assert_includes response.body, "recording_studio_external_embed"
+    assert_includes response.body, "bowerbird-app/RecordingStudio_external_embed"
+    assert_includes response.body, "bundle install"
+    assert_includes response.body, "bin/rails generate recording_studio_external_embed:install"
+    assert_includes response.body, "/recording_studio_external_embed"
+    assert_includes response.body, "config/initializers/recording_studio_external_embed.rb"
+    assert_includes response.body, "--mount-path /embeds"
   end
 
   test "config page renders successfully" do
     get docs_config_path
     assert_response :success
     assert_select "h1", text: "Config"
-    expected_placeholder = "Replace this placeholder with the configuration settings your generated gem exposes."
-
-    assert_includes response.body, expected_placeholder
-    assert_includes response.body, "# Add the config settings for the gem here."
+    assert_includes response.body, "config/initializers/recording_studio_external_embed.rb"
+    assert_includes response.body, "config.open_timeout = 1"
+    assert_includes response.body, "config.read_timeout = 2"
+    assert_includes response.body, "config.max_bytes = 65_536"
+    assert_includes response.body, "does not include"
+    assert_includes response.body, "/docs/providers"
   end
 
   test "providers page renders built-in catalog and registration docs" do
@@ -53,7 +59,7 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "RecordingStudio::ExternalEmbed.register"
     assert_includes response.body, "recording_studio_external_embed(result)"
     assert_includes response.body, "# =&gt; &quot;&quot;"
-    assert_includes response.body, "does not document provider registration"
+    assert_includes response.body, "not provider registration"
   end
 
   test "recordable types page renders configured recordables dynamically" do
