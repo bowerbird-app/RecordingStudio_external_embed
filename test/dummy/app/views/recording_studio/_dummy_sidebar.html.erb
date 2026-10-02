@@ -29,6 +29,12 @@
         active: current_page?(main_app.docs_config_path)
       ) %>
       <%= render FlatPack::Sidebar::Item::Component.new(
+        text: "Providers",
+        href: main_app.docs_providers_path,
+        icon: :globe_alt,
+        active: current_page?(main_app.docs_providers_path)
+      ) %>
+      <%= render FlatPack::Sidebar::Item::Component.new(
         text: "Methods",
         href: main_app.docs_methods_path,
         icon: :code_bracket,

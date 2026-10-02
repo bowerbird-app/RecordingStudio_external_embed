@@ -40,6 +40,22 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "# Add the config settings for the gem here."
   end
 
+  test "providers page renders built-in catalog and registration docs" do
+    get docs_providers_path
+
+    assert_response :success
+    assert_select "h1", text: "Providers"
+    assert_includes response.body, "Built-in catalog"
+    assert_includes response.body, "YouTube"
+    assert_includes response.body, ":youtube"
+    assert_includes response.body, "www.youtube.com"
+    assert_includes response.body, "Provider.define"
+    assert_includes response.body, "RecordingStudio::ExternalEmbed.register"
+    assert_includes response.body, "recording_studio_external_embed(result)"
+    assert_includes response.body, "# =&gt; &quot;&quot;"
+    assert_includes response.body, "does not document provider registration"
+  end
+
   test "recordable types page renders configured recordables dynamically" do
     summary_data = create_recordable_type_summary_data
 
