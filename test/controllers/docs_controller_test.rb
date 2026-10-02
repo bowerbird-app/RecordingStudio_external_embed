@@ -125,19 +125,24 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     get docs_gem_views_path
     assert_response :success
     assert_select "h1", text: "Gem Views"
-    assert_select "table", minimum: 1
+    assert_includes response.body, "head :ok"
+    assert_includes response.body, "None"
+    assert_includes response.body, "recording_studio_external_embed"
     refute_includes response.body, "app/views/recording_studio/external_embed/home/index.html.erb"
+    assert_select "table", count: 0
   end
 
   test "methods page renders successfully" do
     get docs_methods_path
     assert_response :success
     assert_select "h1", text: "Methods"
-    assert_includes response.body, "Document the public methods your addon exposes."
-    assert_includes response.body, "Example method"
-    assert_includes response.body, "recordingstudio_addon.example_method"
-    assert_includes response.body, "# Explain what this method does before the example."
-    assert_includes response.body, "Provide one section title and codeblock for each method"
+    assert_includes response.body, "RecordingStudio::ExternalEmbed.resolve"
+    assert_includes response.body, "recording_studio_external_embed"
+    assert_includes response.body, "Provider.define"
+    assert_includes response.body, "ExternalEmbed.register"
+    assert_includes response.body, "/docs/providers"
+    assert_includes response.body, "ExternalEmbed.configure"
+    assert_includes response.body, "with_providers"
   end
 
   test "authenticated docs pages use the recording studio default layout" do

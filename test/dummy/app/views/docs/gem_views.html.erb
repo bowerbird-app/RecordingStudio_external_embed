@@ -3,14 +3,27 @@
 <div class="flex w-full flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
     title: "Gem Views",
-    subtitle: "These are the view templates currently shipped by the gem.",
+    subtitle: "Host-facing view templates shipped with RecordingStudio::ExternalEmbed.",
     variant: :h1
   ) %>
 
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    This gem does not ship renderable engine pages or partials for host applications. The mounted engine root responds with
+    <code class="text-(--surface-content-color)">head :ok</code> and no HTML UI. Embeds are rendered in host views via
+    <code class="text-(--surface-content-color)">recording_studio_external_embed</code> (see
+    <%= link_to "Methods", docs_methods_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>).
+  </p>
+
   <% view_rows = Array(@engine_views).map { |view_path| { path: view_path, source: "Gem engine" } } %>
 
-  <%= render FlatPack::Table::Component.new(data: view_rows, class: "text-sm") do |table| %>
-    <% table.column(title: "View path") { |view| view[:path] } %>
-    <% table.column(title: "Source") { |view| view[:source] } %>
+  <% if view_rows.any? %>
+    <%= render FlatPack::Table::Component.new(data: view_rows, class: "text-sm") do |table| %>
+      <% table.column(title: "View path") { |view| view[:path] } %>
+      <% table.column(title: "Source") { |view| view[:source] } %>
+    <% end %>
+  <% else %>
+    <p class="text-sm font-medium text-(--surface-content-color)">
+      None — no <code class="text-sm">app/views/recording_studio/external_embed/**/*.erb</code> templates are packaged with this gem.
+    </p>
   <% end %>
 </div>

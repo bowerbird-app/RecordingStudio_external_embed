@@ -3,30 +3,136 @@
 <div class="flex w-full flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
     title: "Methods",
-    subtitle: "Document the public methods your addon exposes.",
+    subtitle: "Public Ruby API and view helper for RecordingStudio::ExternalEmbed.",
     variant: :h1
   ) %>
 
   <%= render FlatPack::SectionTitle::Component.new(
-    title: "Example method",
-    subtitle: "recordingstudio_addon.example_method",
+    title: "RecordingStudio::ExternalEmbed.resolve",
+    subtitle: "Resolve a pasted URL to an embed value or an unresolved result."
   ) %>
 
   <%= render FlatPack::CodeBlock::Component.new(
     language: :ruby,
     code: <<~'CODE'
-      # Explain what this method does before the example.
-      result = RecordingstudioAddon.example_method(
-        # Replace with the real arguments this method accepts.
-        input: "demo value"
-      )
+      result = RecordingStudio::ExternalEmbed.resolve("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 
-      # Show what the method returns or what side effect it creates.
-      puts result
+      result.supported?     # true when result is RecordingStudio::ExternalEmbed::Embed
+      result.provider       # :youtube (on Embed)
+      result.embed_url      # iframe src (on Embed)
     CODE
   ) %>
 
-  <p class="text-sm text-(--body-muted-content-color)">
-    Provide one section title and codeblock for each method
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    Accepts a URL string. Returns
+    <code class="text-(--surface-content-color)">RecordingStudio::ExternalEmbed::Embed</code> when a provider
+    recognizes the host and id, otherwise
+    <code class="text-(--surface-content-color)">RecordingStudio::ExternalEmbed::Unresolved</code>.
+    Embeds expose
+    <code class="text-(--surface-content-color)">source_url</code>,
+    <code class="text-(--surface-content-color)">canonical_url</code>,
+    <code class="text-(--surface-content-color)">provider</code>,
+    <code class="text-(--surface-content-color)">provider_label</code>,
+    <code class="text-(--surface-content-color)">content_type</code>,
+    <code class="text-(--surface-content-color)">external_id</code>,
+    <code class="text-(--surface-content-color)">title</code>,
+    <code class="text-(--surface-content-color)">description</code>,
+    <code class="text-(--surface-content-color)">author_name</code>,
+    <code class="text-(--surface-content-color)">author_url</code>,
+    <code class="text-(--surface-content-color)">thumbnail_url</code>,
+    <code class="text-(--surface-content-color)">embed_url</code>,
+    <code class="text-(--surface-content-color)">width</code>,
+    <code class="text-(--surface-content-color)">height</code>, and
+    <code class="text-(--surface-content-color)">aspect_ratio</code>.
+  </p>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Unresolved results",
+    subtitle: "supported? and valid? are false; errors carries one static message."
+  ) %>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :ruby,
+    code: <<~'CODE'
+      result = RecordingStudio::ExternalEmbed.resolve("https://example.com/watch?v=abc")
+      result.supported?  # => false
+      result.reason      # => :unsupported, :invalid, or :malformed
+      result.errors      # => ["That URL is not from a supported provider."]
+    CODE
+  ) %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "recording_studio_external_embed",
+    subtitle: "View helper (included from the engine)."
+  ) %>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :erb,
+    code: <<~CODE
+      <%%= recording_studio_external_embed(embed) %>
+      <%%= recording_studio_external_embed("https://youtu.be/dQw4w9WgXcQ") %>
+    CODE
+  ) %>
+
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    Accepts an
+    <code class="text-(--surface-content-color)">Embed</code>,
+    <code class="text-(--surface-content-color)">Unresolved</code>, or URL string (strings are resolved via
+    <code class="text-(--surface-content-color)">ExternalEmbed.resolve</code>).
+    Returns HTML-safe markup (responsive wrapper + iframe) for an
+    <code class="text-(--surface-content-color)">Embed</code>, or an empty string otherwise.
+  </p>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Provider.define and register",
+    subtitle: "Build and publish custom providers."
+  ) %>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :ruby,
+    code: <<~'CODE'
+      provider = RecordingStudio::ExternalEmbed::Provider.define(:clip) do
+        host "clips.test"
+        label "Clip"
+        embeds_as "https://play.clips.test/e/{id}"
+        canonical "https://clips.test/v/{id}"
+        match content_type: :video, aspect: Rational(16, 9) do
+          path %r{\A/v/(?<id>[a-z0-9]{8})\z}
+        end
+      end
+
+      RecordingStudio::ExternalEmbed.register(provider)
+    CODE
+  ) %>
+
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    See
+    <%= link_to "Providers", docs_providers_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>
+    for the full DSL parameter table. Register before the catalog freezes at
+    <code class="text-(--surface-content-color)">after_initialize</code>.
+  </p>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "RecordingStudio::ExternalEmbed.configure",
+    subtitle: "oEmbed HTTP limits (not provider registration)."
+  ) %>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :ruby,
+    code: <<~'CODE'
+      RecordingStudio::ExternalEmbed.configure do |config|
+        config.open_timeout = 1
+        config.read_timeout = 2
+        config.max_bytes = 65_536
+      end
+    CODE
+  ) %>
+
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    Documented on
+    <%= link_to "Config", docs_config_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>.
+    Tests may use
+    <code class="text-(--surface-content-color)">RecordingStudio::ExternalEmbed.with_providers(*extra, replace: false)</code>
+    to swap the catalog for the duration of a block.
   </p>
 </div>
