@@ -7,8 +7,6 @@ RecordingStudio::ExternalEmbed.configure do |config|
   config.max_bytes = 65_536
 end
 
-BRIGHTCOVE_ACCOUNT = "1752604549001"
-BRIGHTCOVE_PLAYER = "default_default"
 TWITCH_EMBED_PARENTS = ENV.fetch(
   "TWITCH_EMBED_PARENTS",
   "localhost,127.0.0.1,ripeness-unreached-wham.ngrok-free.dev"
@@ -56,20 +54,6 @@ RecordingStudio::ExternalEmbed.register(
     match content_type: :video, aspect: Rational(16, 9) do
       path %r{\A/embed/iframe/(?<id>[a-z0-9]+)/?\z}i, hosts: %w[fast.wistia.net fast.wistia.com]
       query "wmediaid", pattern: /\A[a-z0-9]+\z/i, path: %r{\A/watch/.+\z}, hosts: %w[wistia.com www.wistia.com]
-    end
-  end
-)
-
-RecordingStudio::ExternalEmbed.register(
-  RecordingStudio::ExternalEmbed::Provider.define(:brightcove) do
-    host "players.brightcove.net"
-    embed_host "players.brightcove.net"
-    label "Brightcove"
-    player_path = "/#{BRIGHTCOVE_ACCOUNT}/#{BRIGHTCOVE_PLAYER}/index.html"
-    embeds_as "https://players.brightcove.net#{player_path}?videoId={id}"
-    canonical "https://players.brightcove.net#{player_path}?videoId={id}"
-    match content_type: :video, aspect: Rational(16, 9) do
-      query "videoId", pattern: /\A\d+\z/, path: %r{\A/#{BRIGHTCOVE_ACCOUNT}/#{BRIGHTCOVE_PLAYER}/index\.html\z}
     end
   end
 )
