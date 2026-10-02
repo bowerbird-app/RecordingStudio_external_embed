@@ -89,15 +89,20 @@ RecordingStudio::ExternalEmbed.register(
   end
 )
 
+TWITCH_CLIP_EMBED = "https://clips.twitch.tv/embed?clip={id}&#{TWITCH_PARENT_QUERY}"
+
 RecordingStudio::ExternalEmbed.register(
   RecordingStudio::ExternalEmbed::Provider.define(:twitch) do
-    host "www.twitch.tv", "twitch.tv", "player.twitch.tv"
-    embed_host "player.twitch.tv"
+    host "www.twitch.tv", "twitch.tv", "player.twitch.tv", "m.twitch.tv"
+    embed_host "player.twitch.tv", "clips.twitch.tv"
     label "Twitch VOD"
     embeds_as "https://player.twitch.tv/?video=v{id}&#{TWITCH_PARENT_QUERY}"
     canonical "https://www.twitch.tv/videos/{id}"
     match content_type: :video, aspect: Rational(16, 9) do
-      path %r{\A/videos/(?<id>\d+)/?\z}, hosts: %w[www.twitch.tv twitch.tv]
+      path %r{\A/videos/(?<id>\d+)/?\z}, hosts: %w[www.twitch.tv twitch.tv m.twitch.tv]
+      path %r{\A/[^/]+/clip/(?<id>[A-Za-z0-9_-]+)/?\z},
+        hosts: %w[m.twitch.tv],
+        embeds_as: TWITCH_CLIP_EMBED
     end
   end
 )
@@ -107,7 +112,7 @@ RecordingStudio::ExternalEmbed.register(
     host "clips.twitch.tv"
     embed_host "clips.twitch.tv"
     label "Twitch clip"
-    embeds_as "https://clips.twitch.tv/embed?clip={id}&#{TWITCH_PARENT_QUERY}"
+    embeds_as TWITCH_CLIP_EMBED
     canonical "https://clips.twitch.tv/{id}"
     match content_type: :video, aspect: Rational(16, 9) do
       path %r{\A/(?<id>[A-Za-z0-9_-]+)/?\z}

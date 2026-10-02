@@ -35,13 +35,26 @@ class DummyExternalEmbedProvidersTest < ActiveSupport::TestCase
     assert_equal "https://wistia.com/medias/x10zt19irk", embed.canonical_url
   end
 
+  test "dummy sample dailymotion short url resolves to embed player" do
+    embed = RecordingStudio::ExternalEmbed.resolve("https://dai.ly/x9c0mza")
+
+    assert embed.supported?
+    assert_equal :dailymotion, embed.provider
+    assert_equal "https://www.dailymotion.com/embed/video/x9c0mza", embed.embed_url
+  end
+
   test "dummy twitch embed urls include parent hosts for iframe embedding" do
-    vod = RecordingStudio::ExternalEmbed.resolve("https://www.twitch.tv/videos/456031513")
+    vod = RecordingStudio::ExternalEmbed.resolve("https://m.twitch.tv/videos/2888602700")
     clip = RecordingStudio::ExternalEmbed.resolve(
-      "https://clips.twitch.tv/AmazonianIntentDiamondPhilosoraptor-eWblKfNOah8BsKjW"
+      "https://m.twitch.tv/caseoh_/clip/SparklyFairRatTBTacoLeft-10mLZLdWr0rj_REX"
     )
 
+    assert_equal :twitch, vod.provider
+    assert_equal "https://player.twitch.tv/?video=v2888602700", vod.embed_url.split("&").first
     assert_includes vod.embed_url, "parent=ripeness-unreached-wham.ngrok-free.dev"
+
+    assert_equal :twitch, clip.provider
+    assert_includes clip.embed_url, "https://clips.twitch.tv/embed?clip=SparklyFairRatTBTacoLeft-10mLZLdWr0rj_REX"
     assert_includes clip.embed_url, "parent=ripeness-unreached-wham.ngrok-free.dev"
   end
 end
