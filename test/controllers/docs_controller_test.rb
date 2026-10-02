@@ -60,6 +60,11 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "recording_studio_external_embed(result)"
     assert_includes response.body, "# =&gt; &quot;&quot;"
     assert_includes response.body, "not provider registration"
+    assert_includes response.body, "Provider.define DSL"
+    assert_includes response.body, "embeds_as(template)"
+    assert_includes response.body, "oembed endpoint:"
+    assert_includes response.body, "match aspect:"
+    assert_select "table", minimum: 1
   end
 
   test "recordable types page renders configured recordables dynamically" do
