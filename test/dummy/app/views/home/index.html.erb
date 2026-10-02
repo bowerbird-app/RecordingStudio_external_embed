@@ -40,4 +40,29 @@
       <% end %>
     <% end %>
   </div>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Sample URLs",
+    subtitle: "Dummy-only providers (gem built-in is YouTube). Open a link to copy the URL into a view with recording_studio_external_embed."
+  ) %>
+
+  <%= render FlatPack::List::Component.new(divider: true) do %>
+    <% [
+      ["YouTube", "https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
+      ["Vimeo", "https://vimeo.com/148751763"],
+      ["Loom", "https://www.loom.com/share/5ce611f1f1f94e22eaf2565c"],
+      ["Wistia", "https://fast.wistia.net/embed/iframe/wqsd2hae0l"],
+      ["Brightcove", "https://players.brightcove.net/1752604549001/default_default/index.html?videoId=5804909202001"],
+      ["Dailymotion", "https://www.dailymotion.com/video/x7tgad0"],
+      ["Twitch VOD", "https://www.twitch.tv/videos/456031513"],
+      ["Twitch clip", "https://clips.twitch.tv/AmazonianIntentDiamondPhilosoraptor-eWblKfNOah8BsKjW"]
+    ].each do |label, url| %>
+      <%= render FlatPack::List::Item.new(icon: :link) do %>
+        <div class="flex flex-col gap-1">
+          <span class="font-medium"><%= label %></span>
+          <%= link_to url, url, class: "text-sm text-(--link-text-color) break-all underline-offset-2 hover:underline", target: "_blank", rel: "noopener noreferrer" %>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
 </div>

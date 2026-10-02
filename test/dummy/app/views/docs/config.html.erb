@@ -16,8 +16,10 @@
   </p>
 
   <p class="text-sm leading-6 text-(--surface-muted-content-color)">
-    This dummy host does not include <code class="text-(--surface-content-color)">recording_studio_external_embed.rb</code>
-    yet, so these values still come from the gem defaults until you add that file.
+    This dummy host loads
+    <code class="text-(--surface-content-color)">config/initializers/recording_studio_external_embed.rb</code>
+    with the timeout block below plus extra provider registrations for smoke tests (see
+    <%= link_to "Providers", docs_providers_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>).
   </p>
 
   <%= render FlatPack::SectionTitle::Component.new(

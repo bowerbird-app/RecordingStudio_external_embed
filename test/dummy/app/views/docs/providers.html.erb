@@ -17,9 +17,16 @@
     for a supported YouTube URL and an unsupported lookalike host.
   </p>
 
+  <p class="text-sm leading-6 text-(--surface-muted-content-color)">
+    The gem ships <strong class="font-medium text-(--surface-content-color)">YouTube only</strong> as a built-in provider.
+    This dummy host also registers Vimeo, Loom, Wistia, Brightcove, Dailymotion, and Twitch in
+    <code class="text-(--surface-content-color)">config/initializers/recording_studio_external_embed.rb</code>
+    for smoke tests (see sample URLs on the <%= link_to "embed demo", root_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>).
+  </p>
+
   <%= render FlatPack::SectionTitle::Component.new(
-    title: "Built-in catalog",
-    subtitle: "Registered when the gem loads (today: YouTube only)."
+    title: "Registered providers",
+    subtitle: "Catalog after the dummy initializer runs (includes gem built-ins and dummy extras)."
   ) %>
 
   <% if @providers.any? %>

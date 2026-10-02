@@ -42,7 +42,7 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "config.open_timeout = 1"
     assert_includes response.body, "config.read_timeout = 2"
     assert_includes response.body, "config.max_bytes = 65_536"
-    assert_includes response.body, "does not include"
+    assert_includes response.body, "dummy host loads"
     assert_includes response.body, "/docs/providers"
   end
 
@@ -51,7 +51,8 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: "Providers"
-    assert_includes response.body, "Built-in catalog"
+    assert_includes response.body, "Registered providers"
+    assert_includes response.body, "YouTube only"
     assert_includes response.body, "YouTube"
     assert_includes response.body, ":youtube"
     assert_includes response.body, "www.youtube.com"
