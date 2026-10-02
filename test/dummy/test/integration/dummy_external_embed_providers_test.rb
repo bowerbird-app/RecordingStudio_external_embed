@@ -24,6 +24,17 @@ class DummyExternalEmbedProvidersTest < ActiveSupport::TestCase
     assert_equal "https://player.vimeo.com/video/524933864", embed.embed_url
   end
 
+  test "dummy sample wistia watch url resolves via wmediaid to iframe embed" do
+    embed = RecordingStudio::ExternalEmbed.resolve(
+      "https://wistia.com/watch/video-strategy?wchannelid=7bl63kge0w&wmediaid=x10zt19irk"
+    )
+
+    assert embed.supported?
+    assert_equal :wistia, embed.provider
+    assert_equal "https://fast.wistia.net/embed/iframe/x10zt19irk", embed.embed_url
+    assert_equal "https://wistia.com/medias/x10zt19irk", embed.canonical_url
+  end
+
   test "dummy twitch embed urls include parent hosts for iframe embedding" do
     vod = RecordingStudio::ExternalEmbed.resolve("https://www.twitch.tv/videos/456031513")
     clip = RecordingStudio::ExternalEmbed.resolve(

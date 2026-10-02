@@ -47,14 +47,15 @@ RecordingStudio::ExternalEmbed.register(
 
 RecordingStudio::ExternalEmbed.register(
   RecordingStudio::ExternalEmbed::Provider.define(:wistia) do
-    host "fast.wistia.net", "fast.wistia.com"
+    host "fast.wistia.net", "fast.wistia.com", "wistia.com", "www.wistia.com"
     embed_host "fast.wistia.net"
     label "Wistia"
     embeds_as "https://fast.wistia.net/embed/iframe/{id}"
-    canonical "https://fast.wistia.net/embed/iframe/{id}"
+    canonical "https://wistia.com/medias/{id}"
     oembed endpoint: "https://fast.wistia.com/oembed", thumbnail_hosts: ["embed-ssl.wistia.com", "embed.wistia.com"]
     match content_type: :video, aspect: Rational(16, 9) do
-      path %r{\A/embed/iframe/(?<id>[a-z0-9]+)/?\z}i
+      path %r{\A/embed/iframe/(?<id>[a-z0-9]+)/?\z}i, hosts: %w[fast.wistia.net fast.wistia.com]
+      query "wmediaid", pattern: /\A[a-z0-9]+\z/i, path: %r{\A/watch/.+\z}, hosts: %w[wistia.com www.wistia.com]
     end
   end
 )
