@@ -68,6 +68,7 @@ namespace :test do
     Dir.chdir(DUMMY_APP_ROOT) do
       env = dummy_bundle_env
 
+      run_command!(env, "bundle", "exec", "bin/rails", "tailwindcss:build")
       run_command!(env, "bundle", "exec", "bin/rails", "db:prepare")
       run_command!(env, "bundle", "exec", "bin/rails", "test")
       DUMMY_TEST_FILES.each do |test_file|

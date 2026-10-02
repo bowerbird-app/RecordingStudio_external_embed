@@ -1,9 +1,9 @@
-<% dummy_page_nav(title: "Template Demo", back_url: root_path) %>
+<% dummy_page_nav(title: "External embeds", back_url: root_path) %>
 
 <div class="flex w-full flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
-    title: "Template Demo",
-    subtitle: "This dummy app is the browser-facing demo surface for the template.",
+    title: "External embeds",
+    subtitle: "A resolved YouTube URL renders in the page. An unsupported URL does not.",
     variant: :h1
   ) %>
 
@@ -11,90 +11,32 @@
     <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
       <% card.header do %>
         <%= render FlatPack::PageTitle::Component.new(
-          title: "What's working",
-          subtitle: "Core template capabilities already wired into the dummy app.",
+          title: "YouTube",
+          subtitle: "The helper builds the iframe from the resolved embed.",
           variant: :h3,
           class: "mb-0 pb-0"
         ) %>
       <% end %>
 
       <% card.body do %>
-        <ul class="space-y-3 text-sm leading-6">
-          <li>Rails engine routes are mounted and responding.</li>
-          <li>PostgreSQL UUID-oriented migrations are included in the engine.</li>
-          <li>Tailwind sources can be wired into a host app through the install generator.</li>
-          <li>The dummy app exercises authentication, the Recording Studio default layout, and FlatPack.</li>
-        </ul>
+        <%= recording_studio_external_embed("https://www.youtube.com/watch?v=dQw4w9WgXcQ") %>
       <% end %>
     <% end %>
 
     <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
       <% card.header do %>
         <%= render FlatPack::PageTitle::Component.new(
-          title: "Next steps",
-          subtitle: "The usual first moves when turning the template into a real addon.",
+          title: "Unsupported URL",
+          subtitle: "A lookalike host does not become an iframe.",
           variant: :h3,
           class: "mb-0 pb-0"
         ) %>
       <% end %>
 
       <% card.body do %>
-        <ol class="space-y-3 text-sm leading-6 list-decimal pl-5">
-          <li>Run <code>bin/rename_gem your_addon_name</code> when you are ready to rename the engine.</li>
-          <li>Replace the sample migration with your addon tables and install them into the host app.</li>
-          <li>Configure Recording Studio recordable types and capabilities in the host app initializer.</li>
-          <li>Use the dummy app to validate layout, asset scanning, and authentication flows.</li>
-        </ol>
-      <% end %>
-    <% end %>
-
-    <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
-      <% card.header do %>
-        <%= render FlatPack::PageTitle::Component.new(
-          title: "FlatPack usage",
-          subtitle: "This page uses FlatPack components for its primary UI structure.",
-          variant: :h3,
-          class: "mb-0 pb-0"
-        ) %>
-      <% end %>
-
-      <% card.body do %>
-        <p class="text-sm leading-6 text-(--surface-content-color)">
-          Use FlatPack cards, buttons, badges, inputs, and layout primitives as the default path for addon UI. Keep raw HTML for simple semantic content only.
-        </p>
-      <% end %>
-
-      <% card.footer do %>
-        <a href="https://github.com/bowerbird-app/flatpack"
-           target="_blank"
-           rel="noopener noreferrer"
-           class="inline-flex">
-          <%= render FlatPack::Button::Component.new(
-            text: "View FlatPack documentation",
-            style: :primary,
-            size: :md
-          ) %>
-        </a>
-      <% end %>
-    <% end %>
-
-    <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
-      <% card.header do %>
-        <%= render FlatPack::PageTitle::Component.new(
-          title: "Install flow",
-          subtitle: "What the host app generator path covers.",
-          variant: :h3,
-          class: "mb-0 pb-0"
-        ) %>
-      <% end %>
-
-      <% card.body do %>
-        <ul class="space-y-3 text-sm leading-6">
-          <li>Add the gem to your host app and run <code>bundle install</code>.</li>
-          <li>Run <code>rails generate gem_template:install</code> to mount the engine and add configuration.</li>
-          <li>Run <code>rails generate gem_template:migrations</code> to copy engine migrations into the host app.</li>
-          <li>Rebuild Tailwind if needed with <code>bin/rails tailwindcss:build</code>.</li>
-        </ul>
+        <% rejected = RecordingStudio::ExternalEmbed.resolve("https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ") %>
+        <p class="text-sm leading-6"><%= rejected.errors.first %></p>
+        <%= recording_studio_external_embed(rejected) %>
       <% end %>
     <% end %>
   </div>
