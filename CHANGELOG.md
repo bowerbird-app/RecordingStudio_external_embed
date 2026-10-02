@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Allow per-clause `embeds_as` overrides on `Provider` path and query matchers.
+
 ## 0.1.0
 
 - Resolve an external URL to `RecordingStudio::ExternalEmbed::Embed` or `RecordingStudio::ExternalEmbed::Unresolved`.

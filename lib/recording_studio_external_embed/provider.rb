@@ -242,7 +242,9 @@ module RecordingStudio
         def path(regexp, hosts: nil, embeds_as: nil)
           raise DefinitionError, "path pattern must capture id" unless anchored?(regexp) && regexp.names.include?("id")
 
-          @builder.add_clause(clause_for(hosts: hosts, path: regexp, param: nil, value_pattern: nil, embed_template: embeds_as))
+          @builder.add_clause(
+            clause_for(hosts: hosts, path: regexp, param: nil, value_pattern: nil, embed_template: embeds_as)
+          )
         end
 
         def query(param, pattern:, path:, hosts: nil, embeds_as: nil)
