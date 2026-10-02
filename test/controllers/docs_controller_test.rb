@@ -135,7 +135,8 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_select "nav[aria-label='Page navigation']", count: 1
-    refute_includes response.body, "flat-pack-sidebar-layout"
+    assert_includes response.body, "data-controller=\"flat-pack--sidebar-layout\""
+    assert_includes response.body, "h-screen"
   end
 
   private

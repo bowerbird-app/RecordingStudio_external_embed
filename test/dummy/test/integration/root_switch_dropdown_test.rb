@@ -51,7 +51,7 @@ class RootSwitchDropdownTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
-    refute_includes response.body, "flat-pack-sidebar-layout"
+    assert_includes response.body, "data-controller=\"flat-pack--sidebar-layout\""
   end
 
   test "switching returns to the current page when it is a valid internal route" do

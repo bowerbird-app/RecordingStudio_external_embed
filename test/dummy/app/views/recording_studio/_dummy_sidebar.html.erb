@@ -1,5 +1,5 @@
 <% root_switch_url = recording_studio_root_switchable.root_switch_path(scope: "all_workspaces") %>
-<%= render FlatPack::Sidebar::Component.new(collapsible: false, side: :left, class: "shrink-0") do |sidebar| %>
+<%= render FlatPack::Sidebar::Component.new(side: :left) do |sidebar| %>
   <% sidebar.header do %>
     <%= render FlatPack::Sidebar::Header::Component.new(
       brand_abbr: "EE",

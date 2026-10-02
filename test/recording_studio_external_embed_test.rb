@@ -81,6 +81,12 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     refute_includes controller_source, "flat_pack_sidebar"
     refute File.exist?(File.expand_path("dummy/app/views/layouts/flat_pack_sidebar.html.erb", __dir__))
     refute File.exist?(File.expand_path("dummy/app/views/layouts/flat_pack/_sidebar.html.erb", __dir__))
+
+    default_layout = File.read(File.expand_path("dummy/app/views/layouts/recording_studio/default_layout.html.erb", __dir__))
+    assert_includes default_layout, "FlatPack::SidebarLayout::Component"
+    assert_includes default_layout, 'storage_key: "flat-pack-sidebar-layout"'
+    assert_includes default_layout, "h-full overflow-hidden overscroll-none"
+    refute_includes default_layout, "flex min-h-screen"
   end
 
   def test_dummy_login_layout_keeps_flatpack_assets_without_tight_main_offset

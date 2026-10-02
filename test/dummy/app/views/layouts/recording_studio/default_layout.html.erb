@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="h-full overflow-hidden overscroll-none">
   <head>
     <% rs_config = RecordingStudio.configuration %>
     <% app_name = (rs_config.respond_to?(:app_name) ? rs_config.app_name : nil) || "CHANGE_APP_NAME_IN_DEFAULT_LAYOUT" %>
@@ -40,12 +40,14 @@
     <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
   </head>
 
-  <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true" data-theme="<%= content_for(:body_theme).presence || 'rounded' %>">
-    <div class="flex min-h-screen w-full">
-      <%= render "recording_studio/dummy_sidebar" %>
+  <body class="m-0 h-full overflow-hidden overscroll-none bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true" data-theme="<%= content_for(:body_theme).presence || 'rounded' %>">
+    <%= render FlatPack::SidebarLayout::Component.new(side: :left, storage_key: "flat-pack-sidebar-layout") do |layout| %>
+      <% layout.sidebar do %>
+        <%= render "recording_studio/dummy_sidebar" %>
+      <% end %>
 
-      <div class="flex min-w-0 flex-1 flex-col">
-        <main class="mx-auto min-h-screen w-full max-w-6xl flex-1 p-6">
+      <% layout.main do %>
+        <main class="mx-auto h-full w-full max-w-6xl overflow-auto p-6">
           <% if flash[:notice].present? %>
             <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-4") %>
           <% end %>
@@ -139,7 +141,7 @@
 
           <%= yield %>
         </main>
-      </div>
-    </div>
+      <% end %>
+    <% end %>
   </body>
 </html>
