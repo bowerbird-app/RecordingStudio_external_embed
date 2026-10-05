@@ -11,6 +11,8 @@ This Rails app is the host sandbox for RecordingStudio::ExternalEmbed.
 - Mounted `RecordingStudio::Engine` route behavior inside a host app
 - Dummy-only `/docs/*` pages for gem-specific onboarding
 
+Dummy credentials (`config/credentials.yml.enc`) are encrypted with the shared RecordingStudio_* development master key. Set `RAILS_MASTER_KEY` or put that key in `config/master.key` (gitignored). Keep the encrypted file; do not generate a per-repo dummy key.
+
 ## Quick Start
 
 ```bash
