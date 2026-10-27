@@ -1,11 +1,10 @@
-<% dummy_page_nav(title: "Config", back_url: root_path) %>
+<% dummy_page_nav(
+  title: "Config",
+  subtitle: "oEmbed gateway timeouts and byte limits for RecordingStudio::ExternalEmbed.",
+  back_url: root_path
+) %>
 
 <div class="flex w-full flex-col gap-6">
-  <%= render FlatPack::PageTitle::Component.new(
-    title: "Config",
-    subtitle: "oEmbed gateway timeouts and byte limits for RecordingStudio::ExternalEmbed.",
-    variant: :h1
-  ) %>
 
   <p class="text-sm leading-6 text-(--surface-muted-content-color)">
     The install generator writes

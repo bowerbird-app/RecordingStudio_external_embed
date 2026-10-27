@@ -1,14 +1,12 @@
-<% dummy_page_nav(title: "Install", back_url: root_path) %>
+<% dummy_page_nav(
+  title: "Install",
+  subtitle: "Add RecordingStudio::ExternalEmbed to a host Rails app and mount the engine.",
+  back_url: root_path
+) %>
 
 <div class="flex w-full flex-col gap-6">
-  <%= render FlatPack::PageTitle::Component.new(
-    title: "Install",
-    subtitle: "Add RecordingStudio::ExternalEmbed to a host Rails app and mount the engine.",
-    variant: :h1
-  ) %>
-
   <p class="text-sm leading-6 text-(--surface-muted-content-color)">
-    The gem requires Ruby 3.3 or newer, Rails 8.1, and <code class="text-(--surface-content-color)">recording_studio</code> 4.2.
+    The gem requires Ruby 3.3 or newer, Rails 8.1, and <code class="text-(--surface-content-color)">recording_studio</code> 6.1 or newer.
   </p>
 
   <%= render FlatPack::SectionTitle::Component.new(

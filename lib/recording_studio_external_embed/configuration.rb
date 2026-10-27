@@ -6,7 +6,7 @@ module RecordingStudio
       MERGEABLE = %i[open_timeout read_timeout max_bytes].freeze
 
       attr_accessor :open_timeout, :read_timeout, :max_bytes, :http, :resolver
-      attr_reader :hooks
+      attr_reader :hooks, :layout
 
       def initialize
         @open_timeout = 1
@@ -14,7 +14,13 @@ module RecordingStudio
         @max_bytes = 65_536
         @http = nil
         @resolver = nil
+        # nil falls through to RecordingStudio.configuration.layout, then the core default.
+        @layout = nil
         @hooks = RecordingStudio::Hooks.new
+      end
+
+      def layout=(value)
+        @layout = RecordingStudio::Layout.accept(value)
       end
 
       def merge!(attributes)

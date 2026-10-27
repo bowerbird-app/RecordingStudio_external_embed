@@ -1,11 +1,10 @@
-<% dummy_page_nav(title: "Providers", back_url: root_path) %>
+<% dummy_page_nav(
+  title: "Providers",
+  subtitle: "How URLs map to embed providers in RecordingStudio::ExternalEmbed.",
+  back_url: root_path
+) %>
 
 <div class="flex w-full flex-col gap-6">
-  <%= render FlatPack::PageTitle::Component.new(
-    title: "Providers",
-    subtitle: "How URLs map to embed providers in RecordingStudio::ExternalEmbed.",
-    variant: :h1
-  ) %>
 
   <p class="text-sm leading-6 text-(--surface-muted-content-color)">
     A provider recognizes one or more hosts, extracts an external id from the pasted URL, and builds

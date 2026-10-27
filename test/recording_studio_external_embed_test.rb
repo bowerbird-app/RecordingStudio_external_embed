@@ -4,17 +4,18 @@ require "test_helper"
 
 class RecordingStudioExternalEmbedTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.1.1", RecordingStudio::ExternalEmbed::VERSION
+    assert_equal "0.2.0", RecordingStudio::ExternalEmbed::VERSION
   end
 
   def test_engine_exists
     assert_kind_of Class, RecordingStudio::ExternalEmbed::Engine
   end
 
-  def test_gemspec_pins_recording_studio_4_2
+  def test_gemspec_requires_recording_studio_6_1
     gemspec = File.read(File.expand_path("../recording_studio_external_embed.gemspec", __dir__))
 
-    assert_includes gemspec, 'spec.add_dependency "recording_studio", "~> 4.2"'
+    assert_includes gemspec, 'spec.add_dependency "recording_studio", ">= 6.1.0"'
+    refute_includes gemspec, '"recording_studio", "~> 4'
   end
 
   def test_gemspec_excludes_cursor_config
@@ -41,16 +42,20 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     assert_includes install_script, "fetch-skills.sh"
   end
 
-  def test_dummy_gemfile_pins_verified_4x_github_tags
+  def test_dummy_gemfile_pins_recording_studio_6_1_and_flatpack
     gemfile = File.read(File.expand_path("dummy/Gemfile", __dir__))
+    root_gemfile = File.read(File.expand_path("../Gemfile", __dir__))
 
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v4.7.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.1.0"'
+    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.1.0"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.18.0"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.11.0", require: false'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.9.0"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_cache", tag: "v0.5.0"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.2.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/flatpack", tag: "v0.1.177"'
+    assert_includes gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
+    assert_includes root_gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
+    assert_includes gemfile, "widen_recording_studio_requirement"
     refute_includes gemfile, "recording_studio/v3.0.0"
     refute_includes gemfile, 'tag: "v0.1.133"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.5.0"'
@@ -114,9 +119,10 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
   def test_dummy_app_uses_recording_studio_default_layout
     controller_source = File.read(File.expand_path("dummy/app/controllers/application_controller.rb", __dir__))
 
-    assert_includes controller_source, "include RecordingStudio::UsesDefaultLayout"
-    assert_includes controller_source, '"recording_studio/default_layout"'
-    assert_includes controller_source, "devise_controller? ? \"application\""
+    assert_includes controller_source, "recording_studio_layout"
+    assert_includes controller_source, 'devise_controller? ? "application"'
+    refute_includes controller_source, "UsesDefaultLayout"
+    refute_includes controller_source, '"recording_studio/default_layout"'
     refute_includes controller_source, "flat_pack_sidebar"
     refute File.exist?(File.expand_path("dummy/app/views/layouts/flat_pack_sidebar.html.erb", __dir__))
     refute File.exist?(File.expand_path("dummy/app/views/layouts/flat_pack/_sidebar.html.erb", __dir__))
@@ -127,7 +133,18 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     assert_includes default_layout, "FlatPack::SidebarLayout::Component"
     assert_includes default_layout, 'storage_key: "flat-pack-sidebar-layout"'
     assert_includes default_layout, "h-full overflow-hidden overscroll-none"
+    assert_includes default_layout, "flat_pack_page_nav_tag"
+    assert_includes default_layout, "FlatPack::PageTitle::Component.new(title: heading, subtitle: subtitle)"
+    assert_operator default_layout.index('stylesheet_link_tag "flat_pack/variables"'), :<,
+                    default_layout.index('stylesheet_link_tag "flat_pack/application"')
+    assert_operator default_layout.index('stylesheet_link_tag "flat_pack/application"'), :<,
+                    default_layout.index('stylesheet_link_tag "flat_pack/rich_text"')
+    assert_operator default_layout.index('stylesheet_link_tag "flat_pack/rich_text"'), :<,
+                    default_layout.index('stylesheet_link_tag "tailwind"')
     refute_includes default_layout, "flex min-h-screen"
+    refute_includes default_layout, "seo_image"
+    refute_includes default_layout, "body_theme"
+    refute_includes default_layout, "page_nav_back_"
   end
 
   def test_dummy_login_layout_keeps_flatpack_assets_without_tight_main_offset
@@ -136,9 +153,14 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     assert_includes application_layout, '<html data-theme="rounded">'
     assert_includes application_layout, 'stylesheet_link_tag "flat_pack/variables"'
     assert_includes application_layout, 'stylesheet_link_tag "flat_pack/application"'
+    assert_operator application_layout.index('stylesheet_link_tag "flat_pack/variables"'), :<,
+                    application_layout.index('stylesheet_link_tag "flat_pack/application"')
+    assert_operator application_layout.index('stylesheet_link_tag "flat_pack/application"'), :<,
+                    application_layout.index('stylesheet_link_tag "flat_pack/rich_text"')
+    assert_operator application_layout.index('stylesheet_link_tag "flat_pack/rich_text"'), :<,
+                    application_layout.index('stylesheet_link_tag "tailwind"')
     assert_includes application_layout, "javascript_importmap_tags"
-    head = File.read(File.expand_path("dummy/app/views/recording_studio/_default_layout_head.html.erb", __dir__))
-    assert_includes head, 'stylesheet_link_tag "flat_pack/application"'
+    refute File.exist?(File.expand_path("dummy/app/views/recording_studio/_default_layout_head.html.erb", __dir__))
     assert_includes application_layout, "min-h-screen"
     refute_includes application_layout, "mt-28"
     refute_includes application_layout, "flat_pack_sidebar"
@@ -183,7 +205,7 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     assert_includes readme, "RecordingStudioEmbeddable"
     assert_includes readme, "youtube-nocookie.com/embed"
     assert_includes readme, "Provider.define"
-    assert_includes readme, "Rails 8.1, and `recording_studio` 4.2"
+    assert_includes readme, "Rails 8.1, and `recording_studio` 6.1 or newer"
     refute_includes readme, "v0.1.133"
     refute_includes readme, "v3 declarations"
     refute_includes readme, "RecordingStudio v3"
@@ -214,7 +236,8 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
       view_source = File.read(view_path)
 
       assert_includes view_source, "dummy_page_nav", view_path
-      assert_includes view_source, "FlatPack::PageTitle::Component", view_path
+      assert_includes view_source, "subtitle:", view_path
+      refute_includes view_source, "FlatPack::PageTitle::Component", view_path
       refute_includes view_source, "FlatPack::Card::Component", view_path
       refute_includes view_source, "FlatPack::Breadcrumb::Component", view_path
     end

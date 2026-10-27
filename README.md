@@ -21,7 +21,7 @@ bin/rails generate recording_studio_external_embed:install
 
 The generator mounts `RecordingStudio::ExternalEmbed::Engine` at `/recording_studio_external_embed` and writes `config/initializers/recording_studio_external_embed.rb`. Pass `--mount-path /embeds` to choose another prefix.
 
-The gem requires Ruby 3.3 or newer, Rails 8.1, and `recording_studio` 4.2.
+The gem requires Ruby 3.3 or newer, Rails 8.1, and `recording_studio` 6.1 or newer.
 
 ## Resolve a URL
 
@@ -127,6 +127,8 @@ RecordingStudio::ExternalEmbed.configure do |config|
   config.max_bytes = 65_536
 end
 ```
+
+`config.layout` accepts a layout name, `false`, or a callable invoked as `call(controller:)`. `nil` uses `RecordingStudio.configuration.layout`, then `recording_studio/default_layout`. Engine controllers read that setting through `recording_studio_layout`.
 
 ## Treat every URL as untrusted
 

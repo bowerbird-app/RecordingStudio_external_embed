@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- Require `recording_studio` 6.1.0 or newer.
+- Add `configuration.layout`. Nil uses the host layout, then `recording_studio/default_layout`.
+- Dummy screens set the page heading with `content_for` and the back link with `flat_pack_page_nav`.
+
 ## 0.1.1
 
 - Allow per-clause `embeds_as` overrides on `Provider` path and query matchers.
