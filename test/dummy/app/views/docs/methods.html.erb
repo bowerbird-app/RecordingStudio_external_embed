@@ -1,11 +1,10 @@
-<% dummy_page_nav(title: "Methods", back_url: root_path) %>
+<% dummy_page_nav(
+  title: "Methods",
+  subtitle: "Public Ruby API and view helper for RecordingStudio::ExternalEmbed.",
+  back_url: root_path
+) %>
 
 <div class="flex w-full flex-col gap-6">
-  <%= render FlatPack::PageTitle::Component.new(
-    title: "Methods",
-    subtitle: "Public Ruby API and view helper for RecordingStudio::ExternalEmbed.",
-    variant: :h1
-  ) %>
 
   <%= render FlatPack::SectionTitle::Component.new(
     title: "RecordingStudio::ExternalEmbed.resolve",

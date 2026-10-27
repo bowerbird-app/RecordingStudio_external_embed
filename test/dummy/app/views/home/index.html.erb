@@ -1,4 +1,8 @@
-<% dummy_page_nav(title: "External embeds", back_url: root_path) %>
+<% dummy_page_nav(
+  title: "External embeds",
+  subtitle: "Each card resolves a sample URL with recording_studio_external_embed. Dummy-only providers are registered in the host initializer.",
+  back_url: root_path
+) %>
 
 <% demo_embeds = [
   ["YouTube", "https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
@@ -10,15 +14,9 @@
 ] %>
 
 <div class="flex w-full flex-col gap-6">
-  <%= render FlatPack::PageTitle::Component.new(
-    title: "External embeds",
-    subtitle: "Each card resolves a sample URL with recording_studio_external_embed. Dummy-only providers are registered in the host initializer.",
-    variant: :h1
-  ) %>
-
   <div class="grid gap-6 lg:grid-cols-2">
     <% demo_embeds.each do |label, url| %>
-      <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
+      <%= render FlatPack::Card::Component.new do |card| %>
         <% card.header do %>
           <%= render FlatPack::PageTitle::Component.new(
             title: label,
@@ -37,7 +35,7 @@
       <% end %>
     <% end %>
 
-    <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
+    <%= render FlatPack::Card::Component.new(border: :strong) do |card| %>
       <% card.header do %>
         <%= render FlatPack::PageTitle::Component.new(
           title: "Unsupported URL",

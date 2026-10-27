@@ -1,11 +1,10 @@
-<% dummy_page_nav(title: "Gem Views", back_url: root_path) %>
+<% dummy_page_nav(
+  title: "Gem Views",
+  subtitle: "Host-facing view templates shipped with RecordingStudio::ExternalEmbed.",
+  back_url: root_path
+) %>
 
 <div class="flex w-full flex-col gap-6">
-  <%= render FlatPack::PageTitle::Component.new(
-    title: "Gem Views",
-    subtitle: "Host-facing view templates shipped with RecordingStudio::ExternalEmbed.",
-    variant: :h1
-  ) %>
 
   <p class="text-sm leading-6 text-(--surface-muted-content-color)">
     This gem does not ship renderable engine pages or partials for host applications. The mounted engine root responds with
