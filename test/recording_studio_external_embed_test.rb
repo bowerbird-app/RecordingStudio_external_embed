@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioExternalEmbedTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.2.0", RecordingStudio::ExternalEmbed::VERSION
+    assert_equal "0.2.1", RecordingStudio::ExternalEmbed::VERSION
   end
 
   def test_engine_exists
