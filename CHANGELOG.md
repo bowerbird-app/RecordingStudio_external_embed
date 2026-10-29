@@ -3,7 +3,7 @@
 ## 0.2.1
 
 - Ignore generated SimpleCov output under `coverage/` and `test/dummy/coverage/`.
-- Replace leftover gem_template wording in Copilot and agent instructions, and look up dummy credentials under `recording_studio_external_embed`.
+- Replace leftover gem_template wording in Copilot and agent instructions.
 - Record the missing 0.1.2–0.1.7 changelog entries and add `UPGRADING.md` for the Recording Studio 6.1 floor.
 
 ## 0.2.0
