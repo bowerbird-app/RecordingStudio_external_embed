@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioExternalEmbedTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.2.1", RecordingStudio::ExternalEmbed::VERSION
+    assert_equal "0.2.2", RecordingStudio::ExternalEmbed::VERSION
   end
 
   def test_engine_exists
@@ -46,22 +46,25 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     gemfile = File.read(File.expand_path("dummy/Gemfile", __dir__))
     root_gemfile = File.read(File.expand_path("../Gemfile", __dir__))
 
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.1.0"'
-    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.1.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.18.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.11.0", require: false'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.9.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_cache", tag: "v0.5.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.2.0"'
-    assert_includes gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
-    assert_includes root_gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
-    assert_includes gemfile, "widen_recording_studio_requirement"
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.3.0"'
+    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.3.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.24.1"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.12.2", require: false'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.11.4"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_cache", tag: "v0.6.2"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.7.2"'
+    assert_includes gemfile, 'tag: "v0.1.341"'
+    assert_includes root_gemfile, 'tag: "v0.1.341"'
+    refute_includes gemfile, "widen_recording_studio_requirement"
     refute_includes gemfile, "recording_studio/v3.0.0"
     refute_includes gemfile, 'tag: "v0.1.133"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.5.0"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.8.0"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.15.0"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.17.0"'
+    refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.18.0"'
+    refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.11.0", require: false'
+    refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.1.0"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v4.6.0"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.10.0", require: false'
     refute_includes gemfile, 'tag: "0.3.1"'
@@ -258,6 +261,40 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     assert_includes recordings_tree_view, "FlatPack::Tree::Component"
     refute_includes recordings_tree_view, "Current structure"
     refute_includes recordings_tree_view, "This tree is generated from RecordingStudio::Recording records"
+  end
+
+  def test_lockfiles_use_rack_3_2_8_or_newer
+    [File.expand_path("../Gemfile.lock", __dir__), File.expand_path("dummy/Gemfile.lock", __dir__)].each do |lockfile|
+      spec_line = File.readlines(lockfile).find { |line| line.match?(/\A    rack \(/) }
+      version = spec_line[/rack \(([^)]+)\)/, 1]
+      assert Gem::Version.new(version) >= Gem::Version.new("3.2.8"), "#{lockfile} rack #{version}"
+    end
+  end
+
+  def test_lockfiles_keep_the_existing_view_component_pin
+    [File.expand_path("../Gemfile.lock", __dir__), File.expand_path("dummy/Gemfile.lock", __dir__)].each do |lockfile|
+      spec_line = File.readlines(lockfile).find { |line| line.match?(/\A    view_component \(/) }
+      assert_equal "4.19.0", spec_line[/view_component \(([^)]+)\)/, 1], lockfile
+    end
+  end
+
+  def test_lockfiles_keep_minitest_5
+    [File.expand_path("../Gemfile.lock", __dir__), File.expand_path("dummy/Gemfile.lock", __dir__)].each do |lockfile|
+      spec_line = File.readlines(lockfile).find { |line| line.match?(/\A    minitest \(/) }
+      version = spec_line[/minitest \(([^)]+)\)/, 1]
+      assert version.start_with?("5."), "#{lockfile} minitest #{version}"
+    end
+  end
+
+  def test_template_leftover_docs_and_flatpack_kwargs_shim_are_gone
+    root = File.expand_path("..", __dir__)
+
+    refute File.exist?(File.join(root, "UPDATE_SUMMARY.md"))
+    refute File.exist?(File.join(root, "MIGRATION_NOTES.md"))
+    refute File.exist?(File.join(root, "test/dummy/config/initializers/flatpack_removed_kwargs.rb"))
+    refute File.exist?(File.join(root, "test/support/widen_recording_studio_requirement.rb"))
+    refute_includes File.read(File.join(root, "test/dummy/config/initializers/recording_studio_root_switchable.rb")),
+                    ":application_layout"
   end
 
   def test_engine_does_not_ship_a_home_view

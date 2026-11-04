@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.2
+
+- Pin the dummy kit to Recording Studio `v6.3.0`, Flatpack `v0.1.341`, Accessible `v0.24.1`, Trashable `v0.12.2`, Cache `v0.6.2`, Root Switchable `v0.11.4`, and Metrics `v0.7.2`.
+- Bump Rack to 3.2.8 or newer in both lockfiles (GHSA-2j8w-xcrc-x985, GHSA-5v64-555j-wjxm, GHSA-p8x9-v4hv-2w4g, GHSA-wvg4-6p58-3gh3).
+- Drop leftover `UPDATE_SUMMARY.md` and `MIGRATION_NOTES.md`. Hosts keep `UPGRADING.md`.
+- Stop asserting a leftover credentials key in the gem credentials test.
+- Drop the dummy Bundler widen helper now that sibling tags accept Recording Studio 6.
+- Point dummy Root Switchable `config.layout` at the core Default Layout instead of the old `:application_layout` symbol.
+
 ## 0.2.1
 
 - Ignore generated SimpleCov output under `coverage/` and `test/dummy/coverage/`.

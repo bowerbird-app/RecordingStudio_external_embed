@@ -73,18 +73,6 @@ class LayoutConfigurationTest < Minitest::Test
     assert_empty RecordingStudio::Layout.hardcoded_layout_paths(File.join(root, "test/dummy"))
   end
 
-  def test_widen_helper_lets_recording_studio_6_satisfy_a_4x_requirement
-    require_relative "support/widen_recording_studio_requirement"
-
-    dependency = Gem::Dependency.new("recording_studio", "~> 4.2")
-    refute dependency.requirement.satisfied_by?(Gem::Version.new("6.1.0"))
-
-    WidenRecordingStudioRequirement.widen_all([dependency])
-
-    assert dependency.requirement.satisfied_by?(Gem::Version.new("6.1.0"))
-    assert dependency.requirement.satisfied_by?(Gem::Version.new("4.2.0"))
-  end
-
   private
 
   def probe
