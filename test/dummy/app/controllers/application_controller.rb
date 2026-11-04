@@ -14,11 +14,6 @@ class ApplicationController < ActionController::Base
 
   private
 
-  # Root Switchable v0.9.0 calls this method when config.layout is :application_layout.
-  def application_layout
-    recording_studio_resolved_layout
-  end
-
   def set_current_actor
     Current.actor = current_user
   end
