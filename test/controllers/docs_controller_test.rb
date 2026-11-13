@@ -191,11 +191,15 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def record_child(recordable, root_recording, parent_recording)
+    previous_actor = Current.actor
+    Current.actor = @user
     RecordingStudio.record!(
       action: "created",
       recordable: recordable,
       root_recording: root_recording,
       parent_recording: parent_recording
     ).recording
+  ensure
+    Current.actor = previous_actor
   end
 end

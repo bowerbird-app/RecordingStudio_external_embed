@@ -29,12 +29,14 @@ class RecordingStudioDeclarationsTest < ActiveSupport::TestCase
     root_recording = RecordingStudio.root_recording_for(Workspace.create!(name: unique_name("Child Workspace")))
     folder = Folder.new(name: unique_name("Allowed Folder"))
 
-    event = RecordingStudio.record!(
-      action: "created",
-      recordable: folder,
-      root_recording: root_recording,
-      parent_recording: root_recording
-    )
+    event = with_write_actor do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: folder,
+        root_recording: root_recording,
+        parent_recording: root_recording
+      )
+    end
 
     assert_equal folder, event.recording.recordable
     assert_equal root_recording, event.recording.parent_recording
@@ -94,12 +96,26 @@ class RecordingStudioDeclarationsTest < ActiveSupport::TestCase
   private
 
   def record_child(recordable, root_recording, parent_recording)
-    RecordingStudio.record!(
-      action: "created",
-      recordable: recordable,
-      root_recording: root_recording,
-      parent_recording: parent_recording
-    ).recording
+    with_write_actor do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: recordable,
+        root_recording: root_recording,
+        parent_recording: parent_recording
+      ).recording
+    end
+  end
+
+  def with_write_actor
+    user = User.find_or_create_by!(email: "declarations-test@example.com") do |record|
+      record.password = "DeclarationsTestPassword!2026"
+      record.password_confirmation = "DeclarationsTestPassword!2026"
+    end
+    previous_actor = Current.actor
+    Current.actor = user
+    yield
+  ensure
+    Current.actor = previous_actor
   end
 
   def unique_name(prefix)

@@ -46,6 +46,7 @@ class RootSwitchDropdownTest < ActionDispatch::IntegrationTest
 
     workspace = Workspace.create!(name: "Switch Page Workspace")
     RecordingStudio.root_recording_for(workspace)
+    grant_view_on_workspace_roots!(user)
 
     get "/recording_studio_root_switchable/v1/root_switch?scope=all_workspaces"
 
@@ -66,6 +67,7 @@ class RootSwitchDropdownTest < ActionDispatch::IntegrationTest
     target_workspace = Workspace.create!(name: "Target Workspace")
     target_root_recording = RecordingStudio.root_recording_for(target_workspace)
     RecordingStudio.root_recording_for(source_workspace)
+    grant_view_on_workspace_roots!(user)
 
     patch "/recording_studio_root_switchable/v1/root_switch", params: {
       scope: "all_workspaces",
@@ -90,6 +92,7 @@ class RootSwitchDropdownTest < ActionDispatch::IntegrationTest
     target_workspace = Workspace.create!(name: "Fallback Target Workspace")
     target_root_recording = RecordingStudio.root_recording_for(target_workspace)
     RecordingStudio.root_recording_for(source_workspace)
+    grant_view_on_workspace_roots!(user)
 
     patch "/recording_studio_root_switchable/v1/root_switch", params: {
       scope: "all_workspaces",
@@ -100,5 +103,33 @@ class RootSwitchDropdownTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to "/"
+  end
+
+  private
+
+  # Root Switchable 0.12+ refuses the mounted switch page unless the actor has
+  # Accessible :view on the current root. The dummy scope lists every workspace.
+  def grant_view_on_workspace_roots!(user)
+    previous_actor = Current.actor
+    Current.actor = user
+
+    Workspace.find_each do |workspace|
+      recording = RecordingStudio.root_recording_for(workspace)
+      next if RecordingStudioAccessible.authorized?(actor: user, recording: recording, role: :view)
+
+      result = RecordingStudioAccessible.bootstrap_owner_access!(recording: recording, actor: user)
+      next if result.success?
+
+      admin = User.find_by!(email: "admin@admin.com")
+      granted = RecordingStudioAccessible.grant_access(
+        recording: recording,
+        actor: user,
+        role: :view,
+        manager_actor: admin
+      )
+      raise granted.error if granted.failure?
+    end
+  ensure
+    Current.actor = previous_actor
   end
 end
