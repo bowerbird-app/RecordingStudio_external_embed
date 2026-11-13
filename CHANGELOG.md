@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Pin the dummy kit to Recording Studio `v6.7.0`, Flatpack `v0.1.356`, Accessible `v0.31.0`, Trashable `v0.14.0`, Cache `v0.6.3`, Root Switchable `v0.15.0`, and Metrics `v0.8.0`.
+
 ## 0.2.2
 
 - Pin the dummy kit to Recording Studio `v6.3.0`, Flatpack `v0.1.341`, Accessible `v0.24.1`, Trashable `v0.12.2`, Cache `v0.6.2`, Root Switchable `v0.11.4`, and Metrics `v0.7.2`.
