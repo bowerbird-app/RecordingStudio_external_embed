@@ -36,9 +36,11 @@ embed.content_type   # :video
 embed.external_id    # "dQw4w9WgXcQ"
 embed.embed_url      # "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"
 embed.aspect_ratio   # (16/9)
+embed.metadata_status     # :none
+embed.metadata_retryable? # false
 ```
 
-`resolve` returns `RecordingStudio::ExternalEmbed::Embed` when a provider recognizes the URL. The embed carries `source_url`, `canonical_url`, `provider`, `provider_label`, `content_type`, `external_id`, `title`, `description`, `author_name`, `author_url`, `thumbnail_url`, `embed_url`, `width`, `height`, and `aspect_ratio`. A provider leaves a field nil when it has no value for that field. YouTube leaves `title`, `description`, `author_name`, `author_url`, and `thumbnail_url` nil because playback does not need a network call. Vimeo fills title, author, and thumbnail from oEmbed when that call succeeds.
+`resolve` returns `RecordingStudio::ExternalEmbed::Embed` when a provider recognizes the URL. The embed carries `source_url`, `canonical_url`, `provider`, `provider_label`, `content_type`, `external_id`, `title`, `description`, `author_name`, `author_url`, `thumbnail_url`, `embed_url`, `width`, `height`, `aspect_ratio`, and `metadata_status`. A provider leaves a field nil when it has no value for that field. YouTube leaves `title`, `description`, `author_name`, `author_url`, and `thumbnail_url` nil because playback does not need a network call, and `metadata_status` is `:none`. Vimeo fills title, author, and thumbnail from oEmbed when that call succeeds. `metadata_retryable?` is true only when `metadata_status` is `:transient_failure`.
 
 ## Render an embed
 
@@ -109,9 +111,20 @@ oembed endpoint: "https://oembed.example.test/oembed", thumbnail_hosts: ["img.ex
 
 The endpoint must be `https` on a public DNS name, with no userinfo and no explicit port. The gateway resolves that name and refuses the request when any answer is loopback, private, link-local, or otherwise non-public. It connects to the checked address, follows no redirects, and stops at the configured byte limit. `open_timeout` defaults to 1 second. `read_timeout` defaults to 2 seconds. `max_bytes` defaults to 65536.
 
-The request sends the canonical URL, not the pasted URL, and asks for JSON. The gateway copies `title`, `author_name`, `author_url`, `thumbnail_url`, `width`, and `height`. It deletes `html`. A thumbnail is kept only when its host is in `thumbnail_hosts`. When both `width` and `height` are positive integers, they replace the clause's aspect ratio. The iframe is still built from `embed_url` and sized from that ratio. A failed response still returns the embed, with the metadata fields nil and the clause aspect ratio unchanged.
+The request sends the canonical URL, not the pasted URL, and asks for JSON. The gateway copies `title`, `author_name`, `author_url`, `thumbnail_url`, `width`, and `height`. It deletes `html`. A thumbnail is kept only when its host is in `thumbnail_hosts`. When both `width` and `height` are positive integers, they replace the clause's aspect ratio. The iframe is still built from `embed_url` and sized from that ratio. `resolve` does not raise when the lookup fails. The embed is still returned, with the metadata fields nil and the clause aspect ratio unchanged.
 
-Successful lookups are cached. The cache key is the provider and the canonical URL. The store is `config.cache` when set, otherwise `Rails.cache`. `config.cache_ttl` defaults to 12 hours. Failed lookups are not cached, so the next resolve tries again. `open_timeout` stays 1 second. `read_timeout` stays 2 seconds. `max_bytes` stays 65536.
+`metadata_status` says how the lookup finished:
+
+| Status | When |
+| --- | --- |
+| `:fetched` | oEmbed returned a JSON object with a title, author, thumbnail, or dimensions. A missing thumbnail on that object is still `:fetched`. |
+| `:none` | The provider declares no oEmbed endpoint, or the endpoint returned a JSON object with none of those fields. |
+| `:transient_failure` | The lookup timed out, DNS failed, the connection failed, or the endpoint returned 429 or 5xx. |
+| `:failed` | The endpoint returned another HTTP status, the body was invalid or larger than `max_bytes`, or the resolved address was not public. |
+
+`metadata_retryable?` is true only for `:transient_failure`. Retry a background poster or thumbnail job on that status. `:none` means there is nothing to fetch. `:failed` will not succeed if repeated as-is.
+
+A `:fetched` lookup is cached. The cache key is the provider and the canonical URL. The store is `config.cache` when set, otherwise `Rails.cache`. `config.cache_ttl` defaults to 12 hours. A cache hit reports `:fetched`. `:none`, `:transient_failure`, and `:failed` are not cached, so the next resolve tries again. `open_timeout` stays 1 second. `read_timeout` stays 2 seconds. `max_bytes` stays 65536. Entries written before this status existed are ignored.
 
 YouTube does not use this path. Its iframe URL is built from the video id alone. Vimeo does use it.
 

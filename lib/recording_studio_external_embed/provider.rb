@@ -75,7 +75,7 @@ module RecordingStudio
           description: nil,
           author_name: presentation.author_name,
           author_url: presentation.author_url,
-          thumbnail_url: presentation.thumbnail_url
+          thumbnail_url: presentation.thumbnail_url, metadata_status: presentation.metadata_status
         }
       end
 
@@ -98,7 +98,7 @@ module RecordingStudio
       end
 
       def decorate(clause, captured)
-        return Oembed::Presentation.empty unless oembed
+        return Oembed::Presentation.none unless oembed
 
         canonical_url = expand(canonical_template_for(clause), captured.id, captured.unlisted_hash)
         Oembed::Gateway.lookup(oembed, canonical_url, provider: key)

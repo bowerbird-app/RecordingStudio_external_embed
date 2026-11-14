@@ -11,10 +11,14 @@ module RecordingStudio
   module ExternalEmbed
     module Oembed
       class Presentation
-        attr_reader :title, :author_name, :author_url, :thumbnail_url, :width, :height
+        attr_reader :title, :author_name, :author_url, :thumbnail_url, :width, :height, :metadata_status
 
-        def self.empty
-          new(title: nil, author_name: nil, author_url: nil, thumbnail_url: nil, width: nil, height: nil)
+        def self.none
+          for_status(:none)
+        end
+
+        def self.for_status(metadata_status)
+          new(metadata_status: metadata_status)
         end
 
         def initialize(**attrs)
@@ -24,7 +28,24 @@ module RecordingStudio
           @thumbnail_url = attrs[:thumbnail_url]
           @width = attrs[:width]
           @height = attrs[:height]
+          @metadata_status = attrs[:metadata_status]
+          raise ArgumentError, "metadata status is invalid" unless known_status?
+
           freeze
+        end
+
+        def data?
+          title || author_name || author_url || thumbnail_url || width || height
+        end
+
+        def cacheable?
+          metadata_status == :fetched
+        end
+
+        private
+
+        def known_status?
+          Embed::METADATA_STATUSES.include?(metadata_status)
         end
       end
 
@@ -129,24 +150,44 @@ module RecordingStudio
           return cached if cached
 
           presentation = retrieve
-          ResponseCache.write(@provider, @canonical_url, presentation) if presentation
-          presentation || Presentation.empty
-        rescue JSON::ParserError, IOError, SystemCallError, Timeout::Error,
-               SocketError, Resolv::ResolvError, OpenSSL::SSL::SSLError, Net::ProtocolError
-          Presentation.empty
+          ResponseCache.write(@provider, @canonical_url, presentation) if presentation.cacheable?
+          presentation
+        rescue JSON::ParserError
+          Presentation.for_status(:failed)
+        rescue IOError, SystemCallError, Timeout::Error, SocketError, Resolv::ResolvError,
+               OpenSSL::SSL::SSLError, Net::ProtocolError
+          Presentation.for_status(:transient_failure)
         end
 
         private
 
         def retrieve
           uri = request_uri
-          @address = uri && AddressGuard.safe_address(resolve(uri.host))
-          return nil unless @address
+          return Presentation.for_status(:failed) unless uri
+
+          refusal = pin(uri)
+          return refusal if refusal
 
           status, body = fetch(uri)
-          return nil unless status.to_i == 200
+          classify(status, body)
+        end
 
-          map(body)
+        def pin(uri)
+          addresses = Array(resolve(uri.host)).map(&:to_s)
+          return Presentation.for_status(:transient_failure) if addresses.empty?
+
+          @address = AddressGuard.safe_address(addresses)
+          return if @address
+
+          Presentation.for_status(:failed)
+        end
+
+        def classify(status, body)
+          code = status.to_i
+          return Presentation.for_status(:transient_failure) if code == 429 || (500..599).cover?(code)
+          return Presentation.for_status(:failed) unless code == 200 && body
+
+          Metadata.read(body, thumbnail_hosts: @endpoint.thumbnail_hosts)
         end
 
         def request_uri
@@ -195,28 +236,52 @@ module RecordingStudio
 
           [response.code.to_i, body]
         end
+      end
 
-        def map(body)
-          data = parsed_hash(body)
-          return nil unless data
+      class Metadata
+        def self.read(body, thumbnail_hosts:)
+          new(body, thumbnail_hosts).read
+        end
+
+        def initialize(body, thumbnail_hosts)
+          @body = body
+          @thumbnail_hosts = thumbnail_hosts
+        end
+
+        def read
+          data = parsed_hash
+          return Presentation.for_status(:failed) unless data
 
           data.delete("html")
-          Presentation.new(
-            title: clean_text(data["title"]), author_name: clean_text(data["author_name"]),
+          present(data)
+        end
+
+        private
+
+        def present(data)
+          presentation = Presentation.new(**attributes(data), metadata_status: :fetched)
+          presentation.data? ? presentation : Presentation.none
+        end
+
+        def attributes(data)
+          {
+            title: clean_text(data["title"]),
+            author_name: clean_text(data["author_name"]),
             author_url: https_url(data["author_url"]),
-            thumbnail_url: https_url(data["thumbnail_url"], hosts: @endpoint.thumbnail_hosts),
-            width: counted(data["width"]), height: counted(data["height"])
-          )
+            thumbnail_url: https_url(data["thumbnail_url"], hosts: @thumbnail_hosts),
+            width: counted(data["width"]),
+            height: counted(data["height"])
+          }
         end
 
         def counted(value)
           value if value.is_a?(Integer) && value.positive?
         end
 
-        def parsed_hash(body)
-          return nil if body.to_s.bytesize > RecordingStudio::ExternalEmbed.configuration.max_bytes
+        def parsed_hash
+          return nil if @body.to_s.bytesize > RecordingStudio::ExternalEmbed.configuration.max_bytes
 
-          data = JSON.parse(body.to_s)
+          data = JSON.parse(@body.to_s)
           data if data.is_a?(Hash)
         rescue JSON::ParserError
           nil
@@ -260,7 +325,7 @@ module RecordingStudio
           return nil unless store
 
           value = store.read(@key)
-          value if value.is_a?(Presentation)
+          value if value.is_a?(Presentation) && value.cacheable?
         rescue StandardError
           nil
         end

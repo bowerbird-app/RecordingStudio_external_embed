@@ -8,8 +8,9 @@ module RecordingStudio
       ATTRIBUTES = %i[
         source_url canonical_url provider provider_label content_type external_id
         title description author_name author_url thumbnail_url embed_url
-        width height aspect_ratio
+        width height aspect_ratio metadata_status
       ].freeze
+      METADATA_STATUSES = %i[fetched none transient_failure failed].freeze
       SYMBOL_NAME = /\A[a-z][a-z0-9_]*\z/
       ID_PATTERN = /\A[A-Za-z0-9_-]{1,64}\z/
 
@@ -42,6 +43,10 @@ module RecordingStudio
         nil
       end
 
+      def metadata_retryable?
+        metadata_status == :transient_failure
+      end
+
       def ==(other)
         other.is_a?(Embed) && ATTRIBUTES.all? { |name| public_send(name) == other.public_send(name) }
       end
@@ -55,6 +60,7 @@ module RecordingStudio
         require_symbol(content_type, "content type is invalid")
         require_external_id
         require_dimensions
+        require_metadata_status
         drop_untrusted_urls
       end
 
@@ -75,6 +81,10 @@ module RecordingStudio
       def require_dimensions
         raise ArgumentError, "aspect ratio is invalid" unless aspect_ratio.is_a?(Rational) && aspect_ratio.positive?
         raise ArgumentError, "dimensions are invalid" unless positive_integer?(width) && positive_integer?(height)
+      end
+
+      def require_metadata_status
+        raise ArgumentError, "metadata status is invalid" unless METADATA_STATUSES.include?(metadata_status)
       end
 
       def drop_untrusted_urls

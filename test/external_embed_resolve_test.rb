@@ -26,6 +26,8 @@ class ExternalEmbedResolveTest < Minitest::Test
     assert_equal 560, embed.width
     assert_equal 315, embed.height
     assert_equal Rational(16, 9), embed.aspect_ratio
+    assert_equal :none, embed.metadata_status
+    assert_equal false, embed.metadata_retryable?
   end
 
   def test_accepted_youtube_urls_share_one_embed_url
@@ -75,6 +77,8 @@ class ExternalEmbedResolveTest < Minitest::Test
     embed = RecordingStudio::ExternalEmbed.resolve("https://youtu.be/#{VIDEO_ID}")
 
     assert_equal EMBED_URL, embed.embed_url
+    assert_equal :none, embed.metadata_status
+    assert_equal false, embed.metadata_retryable?
   ensure
     RecordingStudio::ExternalEmbed.configuration.http = nil
   end
