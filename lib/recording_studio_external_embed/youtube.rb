@@ -16,8 +16,10 @@ module RecordingStudio
         builder.host(*HOSTS)
         builder.label "YouTube"
         builder.embed_host "www.youtube-nocookie.com"
+        builder.thumbnail_host "i.ytimg.com"
         builder.embeds_as "https://www.youtube-nocookie.com/embed/{id}"
         builder.canonical "https://www.youtube.com/watch?v={id}"
+        builder.thumbnail "https://i.ytimg.com/vi/{id}/hqdefault.jpg"
         landscape_match(builder)
         portrait_match(builder)
       end

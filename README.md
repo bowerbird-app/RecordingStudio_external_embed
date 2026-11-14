@@ -4,7 +4,7 @@
 
 `RecordingStudioEmbeddable` makes Recording Studio content embeddable on other sites. This gem does the other direction. It resolves and renders externally hosted content inside Recording Studio applications.
 
-The gem does not store embeds or download media. It does not call the YouTube Data API or a paid Vimeo API. Title, author, and thumbnail come from a provider's free oEmbed endpoint when that provider declares one.
+The gem does not store embeds or download media. It does not call the YouTube Data API or a paid Vimeo API. YouTube builds its thumbnail from the video id and does not make a request. A provider that declares oEmbed fills title, author, and thumbnail from that free endpoint.
 
 ## Install the gem
 
@@ -40,7 +40,7 @@ embed.metadata_status     # :none
 embed.metadata_retryable? # false
 ```
 
-`resolve` returns `RecordingStudio::ExternalEmbed::Embed` when a provider recognizes the URL. The embed carries `source_url`, `canonical_url`, `provider`, `provider_label`, `content_type`, `external_id`, `title`, `description`, `author_name`, `author_url`, `thumbnail_url`, `embed_url`, `width`, `height`, `aspect_ratio`, and `metadata_status`. A provider leaves a field nil when it has no value for that field. YouTube leaves `title`, `description`, `author_name`, `author_url`, and `thumbnail_url` nil because playback does not need a network call, and `metadata_status` is `:none`. Vimeo fills title, author, and thumbnail from oEmbed when that call succeeds. `metadata_retryable?` is true only when `metadata_status` is `:transient_failure`.
+`resolve` returns `RecordingStudio::ExternalEmbed::Embed` when a provider recognizes the URL. The embed carries `source_url`, `canonical_url`, `provider`, `provider_label`, `content_type`, `external_id`, `title`, `description`, `author_name`, `author_url`, `thumbnail_url`, `embed_url`, `width`, `height`, `aspect_ratio`, and `metadata_status`. A provider leaves a field nil when it has no value for that field. YouTube leaves `title`, `description`, `author_name`, and `author_url` nil. It sets `thumbnail_url` to `https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg` from the video id, with no network call, and `metadata_status` is `:none`. Vimeo fills title, author, and thumbnail from oEmbed when that call succeeds. `metadata_retryable?` is true only when `metadata_status` is `:transient_failure`.
 
 ## Render an embed
 
@@ -69,7 +69,7 @@ YouTube and Vimeo are the built-in providers. These YouTube URL shapes resolve t
 
 Watch, youtu.be, and embed URLs use a 16 by 9 frame. Shorts use a 9 by 16 frame. Both content types are `:video`.
 
-The embed URL is always `https://www.youtube-nocookie.com/embed/VIDEO_ID`. The canonical URL is always `https://www.youtube.com/watch?v=VIDEO_ID`.
+The embed URL is always `https://www.youtube-nocookie.com/embed/VIDEO_ID`. The canonical URL is always `https://www.youtube.com/watch?v=VIDEO_ID`. The thumbnail URL is always `https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg`. That host is `i.ytimg.com`.
 
 ## Recognize a Vimeo URL
 
@@ -96,8 +96,8 @@ Metadata comes from `https://vimeo.com/api/oembed.json`. No API key is required.
 1. The parser accepts only `http` and `https`. It rejects blanks, userinfo, an explicit port, and any other scheme.
 2. The host is matched exactly. `youtube.com.evil.example` is not YouTube.
 3. The matching provider extracts an id with its own path or query rule.
-4. The provider fills `embed_url` and `canonical_url` from templates that contain that id.
-5. If the provider declared an oEmbed endpoint, the gateway asks that endpoint for title, author, thumbnail, width, and height. YouTube does not declare one. Vimeo does.
+4. The provider fills `embed_url` and `canonical_url` from templates that contain that id. A `thumbnail` template, when declared, fills `thumbnail_url` the same way.
+5. If the provider declared an oEmbed endpoint, the gateway asks that endpoint for title, author, thumbnail, width, and height. YouTube does not declare one. Vimeo does. An oEmbed thumbnail replaces the template thumbnail when the response includes one.
 
 A host with no provider returns an unsupported result. A known host with a missing or illegal id returns a malformed result. The result has no `embed_url` method, so a caller cannot render a half-built iframe.
 
@@ -122,11 +122,11 @@ The request sends the canonical URL, not the pasted URL, and asks for JSON. The 
 | `:transient_failure` | The lookup timed out, DNS failed, the connection failed, or the endpoint returned 429 or 5xx. |
 | `:failed` | The endpoint returned another HTTP status, the body was invalid or larger than `max_bytes`, or the resolved address was not public. |
 
-`metadata_retryable?` is true only for `:transient_failure`. Retry a background poster or thumbnail job on that status. `:none` means there is nothing to fetch. `:failed` will not succeed if repeated as-is.
+`metadata_retryable?` is true only for `:transient_failure`. Retry a background poster or thumbnail job on that status. `:none` means there is nothing to fetch. `:failed` will not succeed if repeated as-is. A `thumbnail` template still fills `thumbnail_url` when the lookup did not supply one. That does not change `metadata_status`.
 
 A `:fetched` lookup is cached. The cache key is the provider and the canonical URL. The store is `config.cache` when set, otherwise `Rails.cache`. `config.cache_ttl` defaults to 12 hours. A cache hit reports `:fetched`. `:none`, `:transient_failure`, and `:failed` are not cached, so the next resolve tries again. `open_timeout` stays 1 second. `read_timeout` stays 2 seconds. `max_bytes` stays 65536. Entries written before this status existed are ignored.
 
-YouTube does not use this path. Its iframe URL is built from the video id alone. Vimeo does use it.
+YouTube does not use this path. Its iframe URL and thumbnail URL are built from the video id. The thumbnail host is `i.ytimg.com`. Vimeo does use oEmbed.
 
 ## Add a provider
 
@@ -137,8 +137,10 @@ provider = RecordingStudio::ExternalEmbed::Provider.define(:clip) do
   host "clips.test"
   label "Clip"
   embed_host "play.clips.test"
+  thumbnail_host "img.clips.test"
   embeds_as "https://play.clips.test/e/{id}"
   canonical "https://clips.test/v/{id}"
+  thumbnail "https://img.clips.test/{id}.jpg"
   match content_type: :video, aspect: Rational(16, 9) do
     path %r{\A/v/(?<id>[a-z0-9]{8})\z}
   end
@@ -147,7 +149,7 @@ end
 RecordingStudio::ExternalEmbed.register(provider)
 ```
 
-`embeds_as` and `canonical` must be `https` URLs with exactly one `{id}` placeholder. Each template host must be one of the `host` or `embed_host` names. A path pattern must be anchored and must capture `id`. Query rules take an anchored path and an anchored value pattern.
+`embeds_as` and `canonical` must be `https` URLs with exactly one `{id}` placeholder. Each of those template hosts must be one of the `host` or `embed_host` names. `thumbnail` is optional and uses the same `{id}` rule. Its host must be a `thumbnail_host` name. A paste host or an embed host is not a thumbnail host, and a thumbnail host is not an iframe host. The thumbnail is built from the id and does not make a request. A path pattern must be anchored and must capture `id`. Query rules take an anchored path and an anchored value pattern.
 
 A template may also contain one `{hash}` when that clause captures a hash. A path pattern may capture `hash`. A path may require a query hash with `hash_param:` and an anchored `hash_pattern:`. A clause may override `canonical:` the same way it overrides `embeds_as:`. The hash is substituted only when it matches the id charset (`A-Z`, `a-z`, `0-9`, `_`, `-`, 1 to 64 characters), so it cannot change the host or add another query. A template that contains `{hash}` is rejected unless that clause captures a hash, and a clause that captures a hash must use templates that contain one `{hash}`. An invalid hash on a URL that presented one is malformed. It is not treated as the same video without the hash.
 

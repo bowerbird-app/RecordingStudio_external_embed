@@ -1,5 +1,13 @@
 # Upgrading
 
+## 0.5.0
+
+YouTube embeds set `thumbnail_url` to `https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg`. The URL is built from the video id. Resolve still does not call YouTube. `metadata_status` stays `:none`.
+
+A provider may declare `thumbnail_host` and `thumbnail`. The thumbnail template is an https URL with one `{id}`. Its host must be a `thumbnail_host`. Paste hosts and embed hosts are not thumbnail hosts, and a thumbnail host cannot be the iframe host.
+
+When oEmbed returns a thumbnail, that URL is used. When it does not, the template is used and `metadata_status` is unchanged. A provider with no thumbnail template still leaves `thumbnail_url` nil on a `:fetched` response that omitted one.
+
 ## 0.4.0
 
 `Embed#metadata_status` is `:fetched`, `:none`, `:transient_failure`, or `:failed`. `Embed#metadata_retryable?` is true only for `:transient_failure`. Retry a poster or thumbnail job when that predicate is true.

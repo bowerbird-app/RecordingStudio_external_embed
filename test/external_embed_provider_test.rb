@@ -146,6 +146,61 @@ class ExternalEmbedProviderTest < Minitest::Test
     assert_equal "hash pattern must be anchored", error.message
   end
 
+  def test_a_thumbnail_template_can_only_use_a_declared_thumbnail_host
+    error = assert_raises(RecordingStudio::ExternalEmbed::DefinitionError) do
+      RecordingStudio::ExternalEmbed::Provider.define(:bad) do
+        host "videos.test"
+        embed_host "play.videos.test"
+        thumbnail_host "i.ytimg.com"
+        embeds_as "https://play.videos.test/e/{id}"
+        canonical "https://videos.test/v/{id}"
+        thumbnail "https://i.ytimg.com.evil.example/vi/{id}/hqdefault.jpg"
+        match content_type: :video, aspect: Rational(16, 9) do
+          path %r{\A/v/(?<id>[a-z0-9]{8})\z}
+        end
+      end
+    end
+
+    assert_equal "template is not a trusted https url", error.message
+  end
+
+  def test_a_paste_or_embed_host_is_not_a_thumbnail_host
+    ["https://videos.test/t/{id}.jpg", "https://play.videos.test/t/{id}.jpg"].each do |template|
+      error = assert_raises(RecordingStudio::ExternalEmbed::DefinitionError) do
+        RecordingStudio::ExternalEmbed::Provider.define(:bad) do
+          host "videos.test"
+          embed_host "play.videos.test"
+          thumbnail_host "i.ytimg.com"
+          embeds_as "https://play.videos.test/e/{id}"
+          canonical "https://videos.test/v/{id}"
+          thumbnail template
+          match content_type: :video, aspect: Rational(16, 9) do
+            path %r{\A/v/(?<id>[a-z0-9]{8})\z}
+          end
+        end
+      end
+
+      assert_equal "template is not a trusted https url", error.message, template
+    end
+  end
+
+  def test_a_thumbnail_host_cannot_be_used_as_the_iframe_host
+    error = assert_raises(RecordingStudio::ExternalEmbed::DefinitionError) do
+      RecordingStudio::ExternalEmbed::Provider.define(:bad) do
+        host "videos.test"
+        thumbnail_host "i.ytimg.com"
+        embeds_as "https://i.ytimg.com/vi/{id}/hqdefault.jpg"
+        canonical "https://videos.test/v/{id}"
+        thumbnail "https://i.ytimg.com/vi/{id}/hqdefault.jpg"
+        match content_type: :video, aspect: Rational(16, 9) do
+          path %r{\A/v/(?<id>[a-z0-9]{8})\z}
+        end
+      end
+    end
+
+    assert_equal "template is not a trusted https url", error.message
+  end
+
   def test_a_template_cannot_point_the_iframe_at_an_undeclared_host
     error = assert_raises(RecordingStudio::ExternalEmbed::DefinitionError) do
       RecordingStudio::ExternalEmbed::Provider.define(:bad) do

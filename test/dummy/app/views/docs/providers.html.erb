@@ -67,7 +67,13 @@
       name: "embed_host(*names)",
       required: "Optional",
       default: "None",
-      description: "Extra hostnames allowed in embeds_as and canonical templates (for example YouTube uses www.youtube-nocookie.com for the iframe src host)."
+      description: "Extra hostnames allowed in embeds_as and canonical templates (for example YouTube uses www.youtube-nocookie.com for the iframe src host). Not used for thumbnail templates."
+    },
+    {
+      name: "thumbnail_host(*names)",
+      required: "Required with thumbnail",
+      default: "None",
+      description: "Hostnames allowed in the thumbnail template. Paste hosts and embed hosts are not included. YouTube declares i.ytimg.com."
     },
     {
       name: "label(text)",
@@ -86,6 +92,12 @@
       required: "Required",
       default: "None",
       description: "HTTPS canonical URL with exactly one {id} on a declared host or embed_host. One {hash} is allowed when the clause captures a hash. A path clause may override it with canonical:. Sent to oEmbed when configured."
+    },
+    {
+      name: "thumbnail(template)",
+      required: "Optional",
+      default: "None",
+      description: "HTTPS URL with exactly one {id} on a thumbnail_host. Filled from the video id with no request. YouTube uses https://i.ytimg.com/vi/{id}/hqdefault.jpg. An oEmbed thumbnail replaces it when present."
     },
     {
       name: "oembed endpoint:",
