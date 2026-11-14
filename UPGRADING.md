@@ -32,11 +32,11 @@ Provider templates may include one `{hash}` placeholder when a match captures a 
 
 This gem requires `recording_studio` 6.1.0 or newer (`>= 6.1.0` in the gemspec), Rails `~> 8.1.0`, and Ruby 3.3 or newer.
 
-The dummy host pins Recording Studio `v6.10.0`, Flatpack `v0.1.366`, Accessible `v0.37.0`, Trashable `v0.14.1`, Cache `v0.6.3`, Root Switchable `v0.15.0`, and Metrics `v0.8.0`. Those tags declare `recording_studio` 6.1 or newer, so the dummy does not rewrite gemspec requirements.
+The dummy host pins Recording Studio `v6.14.0`, Flatpack `v0.1.374`, Accessible `v0.41.0`, Trashable `v0.15.0`, Cache `v0.6.3`, Root Switchable `v0.15.0`, and Metrics `v0.8.0`. Accessible 0.40 and newer require Recording Studio `>= 6.13.0` and `< 7`. This gem's gemspec floor stays `>= 6.1.0`.
 
 Hosts on an older Recording Studio core need to:
 
-1. Upgrade `recording_studio` to 6.1.0 or newer (6.10.0 matches this dummy). Recording Studio 6.9 and newer also need the `root_recording_id` column on `recording_studio_events`. Copy `20261114090000_add_root_recording_id_to_recording_studio_events` from core and migrate.
+1. Upgrade `recording_studio` to 6.1.0 or newer (6.14.0 matches this dummy). Recording Studio 6.9 and newer also need the `root_recording_id` column on `recording_studio_events`. Copy `20261114090000_add_root_recording_id_to_recording_studio_events` from core and migrate. Recording Studio 6.11 through 6.14 add no further migration. Accessible 0.40 and newer need that core column and Recording Studio 6.13.0 or newer.
 2. Run `bundle update recording_studio recording_studio_external_embed`.
 3. Follow Recording Studio upgrade notes in that gem before expecting this addon to boot.
 

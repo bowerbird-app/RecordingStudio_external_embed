@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin the dummy kit to Recording Studio `v6.14.0`, Flatpack `v0.1.374`, Accessible `v0.41.0`, and Trashable `v0.15.0`. Cache `v0.6.3`, Root Switchable `v0.15.0`, and Metrics `v0.8.0` stay. Accessible 0.40 and newer need Recording Studio 6.13.0 or newer. Core 6.11 through 6.14 add no migration beyond the `root_recording_id` events column already copied into the dummy.
+
 ## 0.5.0
 
 - YouTube `thumbnail_url` is `https://i.ytimg.com/vi/{id}/hqdefault.jpg`, built from the video id. Resolve still makes no HTTP request. `metadata_status` stays `:none`.
