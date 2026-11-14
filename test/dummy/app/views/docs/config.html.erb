@@ -43,8 +43,9 @@
     <code class="text-(--surface-content-color)">open_timeout</code> and
     <code class="text-(--surface-content-color)">read_timeout</code> are in seconds.
     <code class="text-(--surface-content-color)">max_bytes</code> caps how much of an oEmbed JSON response is read.
-    <code class="text-(--surface-content-color)">cache_ttl</code> is how long a successful oEmbed response stays in the cache.
-    The default is 12 hours. Failed lookups are not cached.
+    <code class="text-(--surface-content-color)">cache_ttl</code> is how long a fetched oEmbed response stays in the cache.
+    The default is 12 hours. A cache hit reports metadata_status fetched.
+    A lookup with no metadata, a transient failure, or a permanent failure is not cached.
     <code class="text-(--surface-content-color)">cache</code> chooses the store. Leave it unset to use
     <code class="text-(--surface-content-color)">Rails.cache</code>.
     <code class="text-(--surface-content-color)">http</code>,

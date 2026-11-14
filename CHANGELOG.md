@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.4.0
+
+- Report the oEmbed lookup on `Embed#metadata_status`: `:fetched`, `:none`, `:transient_failure`, or `:failed`. `Embed#metadata_retryable?` is true only for `:transient_failure`.
+- `resolve` still returns the embed and does not raise when a lookup fails. Only a `:fetched` lookup is cached. A cache hit reports `:fetched`.
+
 ## 0.3.0
 
 - Recognize Vimeo watch, player, and unlisted URLs. The player iframe is built from the video id and, for unlisted videos, the hash. Metadata comes from Vimeo's free oEmbed endpoint.

@@ -154,6 +154,8 @@ class ExternalEmbedVimeoTest < Minitest::Test
     assert_equal "json", query["format"]
     assert_equal "vimeo.com", @calls.fetch(0).host
     assert_equal "/api/oembed.json", @calls.fetch(0).path
+    assert_equal :fetched, embed.metadata_status
+    assert_equal false, embed.metadata_retryable?
   end
 
   def test_unlisted_oembed_requests_the_canonical_url_with_the_hash
@@ -174,6 +176,8 @@ class ExternalEmbedVimeoTest < Minitest::Test
 
     assert_nil embed.thumbnail_url
     assert_equal "Vimeo title", embed.title
+    assert_equal :fetched, embed.metadata_status
+    assert_equal false, embed.metadata_retryable?
   end
 
   def test_oembed_width_and_height_set_the_aspect_ratio
@@ -199,7 +203,7 @@ class ExternalEmbedVimeoTest < Minitest::Test
     assert_equal Rational(16, 9), strings.aspect_ratio
   end
 
-  def test_a_failed_oembed_lookup_still_returns_the_embed
+  def test_a_transient_oembed_failure_still_returns_the_embed
     RecordingStudio::ExternalEmbed.configuration.http = lambda do |uri|
       @calls << uri
       [500, "nope"]
@@ -213,6 +217,8 @@ class ExternalEmbedVimeoTest < Minitest::Test
     assert_nil embed.title
     assert_nil embed.thumbnail_url
     assert_equal Rational(16, 9), embed.aspect_ratio
+    assert_equal :transient_failure, embed.metadata_status
+    assert_equal true, embed.metadata_retryable?
   end
 
   def test_a_successful_lookup_is_cached_by_provider_and_canonical_url
@@ -224,13 +230,23 @@ class ExternalEmbedVimeoTest < Minitest::Test
     other = RecordingStudio::ExternalEmbed.resolve("https://vimeo.com/111")
 
     assert_equal "Vimeo title", first.title
+    assert_equal :fetched, first.metadata_status
     assert_equal first.title, second.title
+    assert_equal :fetched, second.metadata_status
+    assert_equal false, second.metadata_retryable?
     assert_equal 2, @calls.size
     assert_equal 2, cache.writes.size
     assert_equal [:recording_studio_external_embed, :oembed, :vimeo, CANONICAL_URL], cache.writes.first[:name]
     assert_equal 12.hours, cache.writes.first[:expires_in]
     assert_equal "https://vimeo.com/111", cache.writes.last[:name].last
     assert_equal "Vimeo title", other.title
+
+    RecordingStudio::ExternalEmbed.configuration.http = ->(_uri) { flunk "cached lookup must not fetch" }
+    cached = RecordingStudio::ExternalEmbed.resolve("https://vimeo.com/#{VIDEO_ID}")
+
+    assert_equal :fetched, cached.metadata_status
+    assert_equal "Vimeo title", cached.title
+    assert_equal 2, @calls.size
   end
 
   def test_a_failed_lookup_is_not_cached
@@ -241,8 +257,10 @@ class ExternalEmbedVimeoTest < Minitest::Test
       [500, "nope"]
     end
 
-    2.times { RecordingStudio::ExternalEmbed.resolve("https://vimeo.com/#{VIDEO_ID}") }
+    embeds = Array.new(2) { RecordingStudio::ExternalEmbed.resolve("https://vimeo.com/#{VIDEO_ID}") }
 
+    assert_equal %i[transient_failure transient_failure], embeds.map(&:metadata_status)
+    assert_equal [true, true], embeds.map(&:metadata_retryable?)
     assert_equal 2, @calls.size
     assert_empty cache.writes
   end

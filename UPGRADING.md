@@ -1,5 +1,15 @@
 # Upgrading
 
+## 0.4.0
+
+`Embed#metadata_status` is `:fetched`, `:none`, `:transient_failure`, or `:failed`. `Embed#metadata_retryable?` is true only for `:transient_failure`. Retry a poster or thumbnail job when that predicate is true.
+
+`resolve` still returns the embed when oEmbed fails, and it does not raise. A missing thumbnail on a successful response is `:fetched`, with `thumbnail_url` nil. `:none` means the provider has no oEmbed endpoint, or the JSON object had no title, author, thumbnail, or dimensions.
+
+`:transient_failure` is a timeout, a DNS or connection failure, HTTP 429, or HTTP 5xx. `:failed` is any other HTTP status, an invalid or oversized body, or a refused non-public address.
+
+Only a `:fetched` lookup is cached. A cache hit reports `:fetched`. `:none` and both failure statuses are not cached. Cached entries from 0.3.0 are ignored and fetched again. Open timeout stays 1 second. Read timeout stays 2 seconds. The byte limit stays 65536.
+
 ## 0.3.0
 
 Vimeo is a built-in provider. Remove a host registration for `:vimeo`, or for `vimeo.com`, `www.vimeo.com`, or `player.vimeo.com`, before booting. The gem raises `RecordingStudio::ExternalEmbed::Conflict` when those are registered again.

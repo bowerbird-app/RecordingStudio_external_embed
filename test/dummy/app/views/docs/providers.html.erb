@@ -91,7 +91,7 @@
       name: "oembed endpoint:",
       required: "Optional",
       default: "None",
-      description: "Public HTTPS oEmbed JSON endpoint. The gateway copies title, author, thumbnail, width, and height, then deletes html. Successful responses are cached. Width and height set the aspect ratio when both are positive integers."
+      description: "Public HTTPS oEmbed JSON endpoint. The gateway copies title, author, thumbnail, width, and height, then deletes html. metadata_status is fetched, none, transient_failure, or failed. metadata_retryable? is true only for transient_failure. A fetched lookup is cached. Width and height set the aspect ratio when both are positive integers."
     },
     {
       name: "oembed thumbnail_hosts:",
