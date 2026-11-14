@@ -69,6 +69,9 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "not provider registration"
     assert_includes response.body, "Provider.define DSL"
     assert_includes response.body, "embeds_as(template)"
+    assert_includes response.body, "thumbnail_host(*names)"
+    assert_includes response.body, "thumbnail(template)"
+    assert_includes response.body, "i.ytimg.com"
     assert_includes response.body, "oembed endpoint:"
     assert_includes response.body, "match aspect:"
     assert_select "table", minimum: 1

@@ -23,6 +23,7 @@ module RecordingStudio
         @embed_template = attributes.fetch(:embed_template)
         @canonical_template = attributes.fetch(:canonical_template)
         @embed_hosts = attributes.fetch(:embed_hosts)
+        @thumbnail_template = attributes[:thumbnail_template]
         @clauses = attributes.fetch(:clauses)
         @oembed = attributes[:oembed]
         freeze
@@ -39,7 +40,7 @@ module RecordingStudio
 
       def attributes_for(ingress, clause, captured)
         presentation = decorate(clause, captured)
-        identity_attributes(ingress, clause, captured).merge(presentation_attributes(presentation, clause))
+        identity_attributes(ingress, clause, captured).merge(presentation_attributes(presentation, clause, captured))
       end
 
       def identity_attributes(ingress, clause, captured)
@@ -58,10 +59,10 @@ module RecordingStudio
         clause.canonical_template || canonical_template
       end
 
-      def presentation_attributes(presentation, clause)
+      def presentation_attributes(presentation, clause, captured)
         aspect = aspect_for(presentation, clause)
         width, height = dimensions(aspect)
-        text_attributes(presentation).merge(frame_attributes(width, height, aspect))
+        text_attributes(presentation, captured).merge(width: width, height: height, aspect_ratio: aspect)
       end
 
       def aspect_for(presentation, clause)
@@ -69,18 +70,16 @@ module RecordingStudio
         pair.all? { |number| number.is_a?(Integer) && number.positive? } ? Rational(*pair) : clause.aspect
       end
 
-      def text_attributes(presentation)
+      def text_attributes(presentation, captured)
         {
           title: presentation.title,
           description: nil,
           author_name: presentation.author_name,
           author_url: presentation.author_url,
-          thumbnail_url: presentation.thumbnail_url, metadata_status: presentation.metadata_status
+          thumbnail_url: presentation.thumbnail_url ||
+            (@thumbnail_template && expand(@thumbnail_template, captured.id, captured.unlisted_hash)),
+          metadata_status: presentation.metadata_status
         }
-      end
-
-      def frame_attributes(width, height, aspect)
-        { width: width, height: height, aspect_ratio: aspect }
       end
 
       def capture(ingress)
@@ -130,6 +129,8 @@ module RecordingStudio
           @label = key.to_s
           @embed_template = nil
           @canonical_template = nil
+          @thumbnail_hosts = []
+          @thumbnail_template = nil
           @oembed = nil
         end
 
@@ -139,6 +140,10 @@ module RecordingStudio
 
         def embed_host(*names)
           @embed_hosts.concat(names.map { |name| normalize_name(name) })
+        end
+
+        def thumbnail_host(*names)
+          @thumbnail_hosts.concat(names.map { |name| normalize_name(name) })
         end
 
         def label(text)
@@ -151,6 +156,10 @@ module RecordingStudio
 
         def canonical(template)
           @canonical_template = template
+        end
+
+        def thumbnail(template)
+          @thumbnail_template = template
         end
 
         def oembed(endpoint:, thumbnail_hosts:)
@@ -185,12 +194,15 @@ module RecordingStudio
           raise DefinitionError, "provider needs a host" if @hosts.empty?
           raise DefinitionError, "provider needs a match" if @clauses.empty?
 
-          Templates.review(
-            embed_template: @embed_template,
-            canonical_template: @canonical_template,
-            clauses: @clauses,
-            allowed_hosts: (@hosts + @embed_hosts).uniq
-          )
+          Templates.review(template_rules)
+        end
+
+        def template_rules
+          {
+            embed_template: @embed_template, canonical_template: @canonical_template,
+            thumbnail_template: @thumbnail_template, clauses: @clauses,
+            allowed_hosts: (@hosts + @embed_hosts).uniq, thumbnail_hosts: @thumbnail_hosts.uniq
+          }
         end
 
         def valid_key?
@@ -202,8 +214,8 @@ module RecordingStudio
             key: @key,
             label: @label,
             hosts: @hosts.uniq.freeze,
-            embed_template: @embed_template,
-            canonical_template: @canonical_template,
+            embed_template: @embed_template, canonical_template: @canonical_template,
+            thumbnail_template: @thumbnail_template,
             embed_hosts: @embed_hosts.uniq.freeze,
             clauses: @clauses.freeze,
             oembed: @oembed
@@ -223,27 +235,30 @@ module RecordingStudio
       end
 
       class Templates
-        def self.review(embed_template:, canonical_template:, clauses:, allowed_hosts:)
-          new(embed_template, canonical_template, allowed_hosts).review(clauses)
+        def self.review(rules)
+          new(rules).review(rules.fetch(:clauses))
         end
 
-        def initialize(embed_template, canonical_template, allowed_hosts)
-          @embed_template = embed_template
-          @canonical_template = canonical_template
-          @allowed_hosts = allowed_hosts
+        def initialize(rules)
+          @embed_template = rules.fetch(:embed_template)
+          @canonical_template = rules.fetch(:canonical_template)
+          @thumbnail_template = rules[:thumbnail_template]
+          @allowed_hosts = rules.fetch(:allowed_hosts)
+          @thumbnail_hosts = rules.fetch(:thumbnail_hosts)
         end
 
         def review(clauses)
-          check(@embed_template)
-          check(@canonical_template)
+          check(@embed_template, @allowed_hosts)
+          check(@canonical_template, @allowed_hosts)
+          check(@thumbnail_template, @thumbnail_hosts) if @thumbnail_template
           clauses.each { |clause| review_clause(clause) }
         end
 
         private
 
         def review_clause(clause)
-          check(clause.embed_template) if clause.embed_template
-          check(clause.canonical_template) if clause.canonical_template
+          check(clause.embed_template, @allowed_hosts) if clause.embed_template
+          check(clause.canonical_template, @allowed_hosts) if clause.canonical_template
           agree(clause)
         end
 
@@ -260,10 +275,10 @@ module RecordingStudio
           override || (kind == :embed ? @embed_template : @canonical_template)
         end
 
-        def check(template)
+        def check(template, hosts)
           raise DefinitionError, "template must contain one id" unless one?(template, "{id}")
           raise DefinitionError, "template must contain one hash" unless one_hash?(template)
-          return if trusted?(template)
+          return if trusted?(template, hosts)
 
           raise DefinitionError, "template is not a trusted https url"
         end
@@ -276,18 +291,18 @@ module RecordingStudio
           template.is_a?(String) && template.scan(token).size == 1
         end
 
-        def trusted?(template)
+        def trusted?(template, hosts)
           sample = template.sub("{id}", "placeholder").sub("{hash}", "placeholder")
           uri = URI.parse(sample)
-          https?(uri)
+          https?(uri, hosts)
         rescue URI::InvalidURIError
           false
         end
 
-        def https?(uri)
+        def https?(uri, hosts)
           return false unless uri.is_a?(URI::HTTPS)
           return false if uri.userinfo
-          return false unless @allowed_hosts.include?(uri.host)
+          return false unless hosts.include?(uri.host)
 
           uri.port.nil? || uri.port == 443
         end

@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "uri"
 
 class ExternalEmbedResolveTest < Minitest::Test
   VIDEO_ID = "dQw4w9WgXcQ"
   EMBED_URL = "https://www.youtube-nocookie.com/embed/#{VIDEO_ID}".freeze
   CANONICAL_URL = "https://www.youtube.com/watch?v=#{VIDEO_ID}".freeze
+  THUMBNAIL_URL = "https://i.ytimg.com/vi/#{VIDEO_ID}/hqdefault.jpg".freeze
 
   def test_watch_url_resolves_to_a_youtube_video
     embed = RecordingStudio::ExternalEmbed.resolve("https://www.youtube.com/watch?v=#{VIDEO_ID}")
@@ -21,6 +23,7 @@ class ExternalEmbedResolveTest < Minitest::Test
     assert_equal EMBED_URL, embed.embed_url
     assert_equal CANONICAL_URL, embed.canonical_url
     assert_equal "https://www.youtube.com/watch?v=#{VIDEO_ID}", embed.source_url
+    assert_equal THUMBNAIL_URL, embed.thumbnail_url
     assert_nil embed.title
     assert_nil embed.description
     assert_equal 560, embed.width
@@ -77,8 +80,32 @@ class ExternalEmbedResolveTest < Minitest::Test
     embed = RecordingStudio::ExternalEmbed.resolve("https://youtu.be/#{VIDEO_ID}")
 
     assert_equal EMBED_URL, embed.embed_url
+    assert_equal THUMBNAIL_URL, embed.thumbnail_url
     assert_equal :none, embed.metadata_status
     assert_equal false, embed.metadata_retryable?
+  ensure
+    RecordingStudio::ExternalEmbed.configuration.http = nil
+  end
+
+  def test_youtube_urls_build_an_i_ytimg_thumbnail_without_a_request
+    RecordingStudio::ExternalEmbed.configuration.http = lambda do |_uri|
+      flunk "YouTube resolve must not perform an HTTP request"
+    end
+
+    [
+      "https://www.youtube.com/watch?v=#{VIDEO_ID}",
+      "https://youtu.be/#{VIDEO_ID}",
+      "https://www.youtube.com/shorts/#{VIDEO_ID}",
+      "https://www.youtube.com/embed/#{VIDEO_ID}"
+    ].each do |url|
+      embed = RecordingStudio::ExternalEmbed.resolve(url)
+      thumbnail = URI.parse(embed.thumbnail_url)
+
+      assert_equal THUMBNAIL_URL, embed.thumbnail_url, url
+      assert_equal "i.ytimg.com", thumbnail.host, url
+      assert_nil thumbnail.userinfo, url
+      assert_equal :none, embed.metadata_status, url
+    end
   ensure
     RecordingStudio::ExternalEmbed.configuration.http = nil
   end
@@ -107,6 +134,9 @@ class ExternalEmbedResolveTest < Minitest::Test
       "https://www.youtube.com/watch?v=short",
       "https://www.youtube.com/watch?v=abcdefghijkl",
       "https://youtu.be/#{VIDEO_ID}/extra",
+      "https://youtu.be/short",
+      "https://www.youtube.com/shorts/short",
+      "https://www.youtube.com/embed/short",
       "https://www.youtube.com/playlist?list=PL123"
     ].each do |url|
       result = RecordingStudio::ExternalEmbed.resolve(url)
@@ -115,6 +145,7 @@ class ExternalEmbedResolveTest < Minitest::Test
       assert_equal :malformed, result.reason, url
       assert_equal ["That URL is missing a valid id."], result.errors, url
       refute_respond_to result, :embed_url
+      refute_respond_to result, :thumbnail_url
     end
   end
 

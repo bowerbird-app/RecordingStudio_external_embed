@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioExternalEmbedTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.4.0", RecordingStudio::ExternalEmbed::VERSION
+    assert_equal "0.5.0", RecordingStudio::ExternalEmbed::VERSION
   end
 
   def test_engine_exists
@@ -233,6 +233,8 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     assert_includes readme, "metadata_retryable?"
     assert_includes readme, ":transient_failure"
     assert_includes readme, "i.vimeocdn.com"
+    assert_includes readme, "i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg"
+    refute_includes readme, "and `thumbnail_url` nil"
     assert_includes readme, "Provider.define"
     upgrading = File.read(File.expand_path("../UPGRADING.md", __dir__))
     assert_includes upgrading, "Remove a host registration for `:vimeo`"
