@@ -17,8 +17,8 @@
   </p>
 
   <p class="text-sm leading-6 text-(--surface-muted-content-color)">
-    The gem ships <strong class="font-medium text-(--surface-content-color)">YouTube only</strong> as a built-in provider.
-    This dummy host also registers Vimeo, Loom, Wistia, and Twitch in
+    The gem ships <strong class="font-medium text-(--surface-content-color)">YouTube and Vimeo</strong> as built-in providers.
+    This dummy host also registers Loom, Wistia, and Twitch in
     <code class="text-(--surface-content-color)">config/initializers/recording_studio_external_embed.rb</code>
     for smoke tests (see sample URLs on the <%= link_to "embed demo", root_path, class: "font-medium text-(--link-text-color) underline-offset-2 hover:underline" %>).
   </p>
@@ -79,19 +79,19 @@
       name: "embeds_as(template)",
       required: "Required",
       default: "None",
-      description: "HTTPS URL with exactly one {id} placeholder on a declared host or embed_host. Becomes embed_url (iframe src after resolve)."
+      description: "HTTPS URL with exactly one {id} on a declared host or embed_host. One {hash} is allowed when the clause captures a hash. Becomes embed_url (iframe src after resolve)."
     },
     {
       name: "canonical(template)",
       required: "Required",
       default: "None",
-      description: "HTTPS canonical URL with exactly one {id} on a declared host or embed_host. Sent to oEmbed when configured."
+      description: "HTTPS canonical URL with exactly one {id} on a declared host or embed_host. One {hash} is allowed when the clause captures a hash. A path clause may override it with canonical:. Sent to oEmbed when configured."
     },
     {
       name: "oembed endpoint:",
       required: "Optional",
       default: "None",
-      description: "Public HTTPS oEmbed JSON endpoint used to fetch title, author, and thumbnail metadata for a resolved id."
+      description: "Public HTTPS oEmbed JSON endpoint. The gateway copies title, author, thumbnail, width, and height, then deletes html. Successful responses are cached. Width and height set the aspect ratio when both are positive integers."
     },
     {
       name: "oembed thumbnail_hosts:",
@@ -115,7 +115,7 @@
       name: "path(regexp, hosts:)",
       required: "One of path or query per match",
       default: "hosts: all provider hosts",
-      description: "Anchored path regexp that must capture a named id group; extracted id must match the provider id charset."
+      description: "Anchored path regexp that must capture a named id group. It may also capture hash. hash_param and an anchored hash_pattern read a query hash. embeds_as and canonical override the provider templates for that clause."
     },
     {
       name: "query(param, pattern:, path:, hosts:)",

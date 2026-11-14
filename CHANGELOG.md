@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.3.0
+
+- Recognize Vimeo watch, player, and unlisted URLs. The player iframe is built from the video id and, for unlisted videos, the hash. Metadata comes from Vimeo's free oEmbed endpoint.
+- Cache successful oEmbed lookups in `Rails.cache` for 12 hours, keyed by provider and canonical URL. Failed lookups are not cached.
+- Allow one `{hash}` placeholder, a clause `canonical:` template, and `hash_param:` on a path match.
+- When oEmbed returns positive integer `width` and `height`, use them as the frame aspect ratio.
 - Pin the dummy kit to Recording Studio `v6.10.0`, Flatpack `v0.1.366`, Accessible `v0.37.0`, Trashable `v0.14.1`, Cache `v0.6.3`, Root Switchable `v0.15.0`, and Metrics `v0.8.0`.
 - Copy Recording Studio 6.10's `root_recording_id` events migration into the dummy so event rows keep a root.
 

@@ -1,10 +1,15 @@
 # frozen_string_literal: true
 
-# Dummy-only provider catalog for smoke-testing embeds. The gem still ships YouTube as the sole built-in.
+# Dummy-only providers sit beside the built-in YouTube and Vimeo catalog.
 RecordingStudio::ExternalEmbed.configure do |config|
   config.open_timeout = 1
   config.read_timeout = 2
   config.max_bytes = 65_536
+  config.cache_ttl = 12.hours
+  next unless Rails.env.test?
+
+  config.resolver = ->(_host) { ["1.1.1.1"] }
+  config.http = ->(_uri) { [404, ""] }
 end
 
 TWITCH_EMBED_PARENTS = ENV.fetch(
@@ -12,21 +17,6 @@ TWITCH_EMBED_PARENTS = ENV.fetch(
   "localhost,127.0.0.1,ripeness-unreached-wham.ngrok-free.dev"
 ).split(",").map(&:strip).reject(&:empty?)
 TWITCH_PARENT_QUERY = TWITCH_EMBED_PARENTS.map { |host| "parent=#{host}" }.join("&")
-
-RecordingStudio::ExternalEmbed.register(
-  RecordingStudio::ExternalEmbed::Provider.define(:vimeo) do
-    host "vimeo.com", "www.vimeo.com", "player.vimeo.com"
-    embed_host "player.vimeo.com"
-    label "Vimeo"
-    embeds_as "https://player.vimeo.com/video/{id}"
-    canonical "https://vimeo.com/{id}"
-    oembed endpoint: "https://vimeo.com/api/oembed.json", thumbnail_hosts: ["i.vimeocdn.com"]
-    match content_type: :video, aspect: Rational(16, 9) do
-      path %r{\A/(?:video/)?(?<id>\d+)/?\z}, hosts: %w[vimeo.com www.vimeo.com]
-      path %r{\A/video/(?<id>\d+)/?\z}, hosts: %w[player.vimeo.com]
-    end
-  end
-)
 
 RecordingStudio::ExternalEmbed.register(
   RecordingStudio::ExternalEmbed::Provider.define(:loom) do

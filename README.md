@@ -4,7 +4,7 @@
 
 `RecordingStudioEmbeddable` makes Recording Studio content embeddable on other sites. This gem does the other direction. It resolves and renders externally hosted content inside Recording Studio applications.
 
-The gem does not store embeds, download media, or call the YouTube Data API.
+The gem does not store embeds or download media. It does not call the YouTube Data API or a paid Vimeo API. Title, author, and thumbnail come from a provider's free oEmbed endpoint when that provider declares one.
 
 ## Install the gem
 
@@ -38,7 +38,7 @@ embed.embed_url      # "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"
 embed.aspect_ratio   # (16/9)
 ```
 
-`resolve` returns `RecordingStudio::ExternalEmbed::Embed` when a provider recognizes the URL. The embed carries `source_url`, `canonical_url`, `provider`, `provider_label`, `content_type`, `external_id`, `title`, `description`, `author_name`, `author_url`, `thumbnail_url`, `embed_url`, `width`, `height`, and `aspect_ratio`. A provider leaves a field nil when it has no value for that field. YouTube leaves `title`, `description`, `author_name`, `author_url`, and `thumbnail_url` nil because playback does not need a network call.
+`resolve` returns `RecordingStudio::ExternalEmbed::Embed` when a provider recognizes the URL. The embed carries `source_url`, `canonical_url`, `provider`, `provider_label`, `content_type`, `external_id`, `title`, `description`, `author_name`, `author_url`, `thumbnail_url`, `embed_url`, `width`, `height`, and `aspect_ratio`. A provider leaves a field nil when it has no value for that field. YouTube leaves `title`, `description`, `author_name`, `author_url`, and `thumbnail_url` nil because playback does not need a network call. Vimeo fills title, author, and thumbnail from oEmbed when that call succeeds.
 
 ## Render an embed
 
@@ -53,7 +53,7 @@ The helper emits one responsive wrapper and one iframe. The iframe `src` is `emb
 
 ## Recognize a YouTube URL
 
-YouTube is the built-in provider. These URL shapes resolve to the same video id and the same embed URL.
+YouTube and Vimeo are the built-in providers. These YouTube URL shapes resolve to the same video id and the same embed URL.
 
 - `https://www.youtube.com/watch?v=VIDEO_ID`
 - `https://youtube.com/watch?v=VIDEO_ID`
@@ -69,6 +69,24 @@ Watch, youtu.be, and embed URLs use a 16 by 9 frame. Shorts use a 9 by 16 frame.
 
 The embed URL is always `https://www.youtube-nocookie.com/embed/VIDEO_ID`. The canonical URL is always `https://www.youtube.com/watch?v=VIDEO_ID`.
 
+## Recognize a Vimeo URL
+
+These Vimeo URL shapes resolve to a player iframe. Hosts are matched exactly, the same way YouTube hosts are matched.
+
+- `https://vimeo.com/VIDEO_ID`
+- `https://www.vimeo.com/VIDEO_ID`
+- `https://vimeo.com/VIDEO_ID/HASH` (unlisted)
+- `https://player.vimeo.com/video/VIDEO_ID`
+- `https://player.vimeo.com/video/VIDEO_ID?h=HASH` (unlisted)
+
+`http` and `https` both work. A trailing dot on the host is ignored. Extra query parameters are ignored, except `h` on a player URL, which is the unlisted hash. A video id is 1 to 64 digits. A hash is 1 to 64 letters or digits. `vimeo.com.evil.example` is not Vimeo. `vimeo.com/video/VIDEO_ID` is not a recognized shape.
+
+The content type is `:video`. The frame starts at 16 by 9. When oEmbed returns both `width` and `height`, the aspect ratio is taken from those integers. The iframe is still sized from a long edge of 560. The oEmbed pixel size is not copied onto the iframe.
+
+The embed URL is `https://player.vimeo.com/video/VIDEO_ID`, plus `?h=HASH` when the pasted URL included a hash. The canonical URL is `https://vimeo.com/VIDEO_ID`, or `https://vimeo.com/VIDEO_ID/HASH` for an unlisted video. oEmbed is requested with that canonical URL, which is what Vimeo needs for unlisted videos. The iframe `src` is always the embed URL. oEmbed `html` is discarded.
+
+Metadata comes from `https://vimeo.com/api/oembed.json`. No API key is required. A thumbnail is kept only when its host is `i.vimeocdn.com`.
+
 ## See how a URL is resolved
 
 `RecordingStudio::ExternalEmbed.resolve` parses the URL, looks up the host, and asks that provider to build an embed.
@@ -77,7 +95,7 @@ The embed URL is always `https://www.youtube-nocookie.com/embed/VIDEO_ID`. The c
 2. The host is matched exactly. `youtube.com.evil.example` is not YouTube.
 3. The matching provider extracts an id with its own path or query rule.
 4. The provider fills `embed_url` and `canonical_url` from templates that contain that id.
-5. If the provider declared an oEmbed endpoint, the gateway asks that endpoint for title, author, and thumbnail. YouTube does not declare one.
+5. If the provider declared an oEmbed endpoint, the gateway asks that endpoint for title, author, thumbnail, width, and height. YouTube does not declare one. Vimeo does.
 
 A host with no provider returns an unsupported result. A known host with a missing or illegal id returns a malformed result. The result has no `embed_url` method, so a caller cannot render a half-built iframe.
 
@@ -91,9 +109,11 @@ oembed endpoint: "https://oembed.example.test/oembed", thumbnail_hosts: ["img.ex
 
 The endpoint must be `https` on a public DNS name, with no userinfo and no explicit port. The gateway resolves that name and refuses the request when any answer is loopback, private, link-local, or otherwise non-public. It connects to the checked address, follows no redirects, and stops at the configured byte limit. `open_timeout` defaults to 1 second. `read_timeout` defaults to 2 seconds. `max_bytes` defaults to 65536.
 
-The request sends the canonical URL, not the pasted URL, and asks for JSON. The gateway copies `title`, `author_name`, `author_url`, and `thumbnail_url`. It deletes `html`. A thumbnail is kept only when its host is in `thumbnail_hosts`. A failed response still returns the embed, with those fields nil.
+The request sends the canonical URL, not the pasted URL, and asks for JSON. The gateway copies `title`, `author_name`, `author_url`, `thumbnail_url`, `width`, and `height`. It deletes `html`. A thumbnail is kept only when its host is in `thumbnail_hosts`. When both `width` and `height` are positive integers, they replace the clause's aspect ratio. The iframe is still built from `embed_url` and sized from that ratio. A failed response still returns the embed, with the metadata fields nil and the clause aspect ratio unchanged.
 
-YouTube does not use this path. Its iframe URL is built from the video id alone.
+Successful lookups are cached. The cache key is the provider and the canonical URL. The store is `config.cache` when set, otherwise `Rails.cache`. `config.cache_ttl` defaults to 12 hours. Failed lookups are not cached, so the next resolve tries again. `open_timeout` stays 1 second. `read_timeout` stays 2 seconds. `max_bytes` stays 65536.
+
+YouTube does not use this path. Its iframe URL is built from the video id alone. Vimeo does use it.
 
 ## Add a provider
 
@@ -116,6 +136,8 @@ RecordingStudio::ExternalEmbed.register(provider)
 
 `embeds_as` and `canonical` must be `https` URLs with exactly one `{id}` placeholder. Each template host must be one of the `host` or `embed_host` names. A path pattern must be anchored and must capture `id`. Query rules take an anchored path and an anchored value pattern.
 
+A template may also contain one `{hash}` when that clause captures a hash. A path pattern may capture `hash`. A path may require a query hash with `hash_param:` and an anchored `hash_pattern:`. A clause may override `canonical:` the same way it overrides `embeds_as:`. The hash is substituted only when it matches the id charset (`A-Z`, `a-z`, `0-9`, `_`, `-`, 1 to 64 characters), so it cannot change the host or add another query. A template that contains `{hash}` is rejected unless that clause captures a hash, and a clause that captures a hash must use templates that contain one `{hash}`. An invalid hash on a URL that presented one is malformed. It is not treated as the same video without the hash.
+
 `register` raises `RecordingStudio::ExternalEmbed::Conflict` when the key or a host is already taken, and when the catalog is already frozen. Tests can pass a temporary catalog to `with_providers` without editing the built-in YouTube provider. `replace: true` drops the built-in catalog for the duration of the block.
 
 Timeouts can be set in the same initializer. `http` and `resolver` are test seams and are ignored when configuration is loaded from YAML.
@@ -125,8 +147,11 @@ RecordingStudio::ExternalEmbed.configure do |config|
   config.open_timeout = 1
   config.read_timeout = 2
   config.max_bytes = 65_536
+  config.cache_ttl = 12.hours
 end
 ```
+
+`config.cache` sets the oEmbed cache store. Leave it nil to use `Rails.cache`. `cache` is ignored when configuration is loaded from YAML, same as `http` and `resolver`. `cache_ttl` is loaded from YAML.
 
 `config.layout` accepts a layout name, `false`, or a callable invoked as `call(controller:)`. `nil` uses `RecordingStudio.configuration.layout`, then `recording_studio/default_layout`. Engine controllers read that setting through `recording_studio_layout`.
 
@@ -136,7 +161,7 @@ The parser rejects `javascript:`, `data:`, and `file:` URLs. It also rejects use
 
 A provider cannot point `embed_url` at a host it did not declare. The iframe `src` is that constructed URL, escaped, and never a string of HTML from the visitor or from oEmbed. Titles are escaped. Remote HTML is not marked safe.
 
-A lookalike host such as `youtube.com.evil.example` does not match YouTube. A malformed video id does not produce an embed URL.
+A lookalike host such as `youtube.com.evil.example` or `vimeo.com.evil.example` does not match a built-in provider. A malformed video id or hash does not produce an embed URL.
 
 ## Handle an unsupported URL
 

@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
+require "active_support/core_ext/numeric/time"
+
 module RecordingStudio
   module ExternalEmbed
     class Configuration
-      MERGEABLE = %i[open_timeout read_timeout max_bytes].freeze
+      MERGEABLE = %i[open_timeout read_timeout max_bytes cache_ttl].freeze
 
-      attr_accessor :open_timeout, :read_timeout, :max_bytes, :http, :resolver
+      attr_accessor :open_timeout, :read_timeout, :max_bytes, :http, :resolver, :cache, :cache_ttl
       attr_reader :hooks, :layout
 
       def initialize
@@ -14,6 +16,8 @@ module RecordingStudio
         @max_bytes = 65_536
         @http = nil
         @resolver = nil
+        @cache = nil
+        @cache_ttl = 12.hours
         # nil falls through to RecordingStudio.configuration.layout, then the core default.
         @layout = nil
         @hooks = RecordingStudio::Hooks.new
@@ -38,7 +42,8 @@ module RecordingStudio
         {
           open_timeout: open_timeout,
           read_timeout: read_timeout,
-          max_bytes: max_bytes
+          max_bytes: max_bytes,
+          cache_ttl: cache_ttl
         }
       end
     end

@@ -6,13 +6,31 @@ class ExternalEmbedConfigurationTest < Minitest::Test
   def test_merge_updates_timeouts_and_ignores_transport_keys
     configuration = RecordingStudio::ExternalEmbed::Configuration.new
 
-    configuration.merge!(open_timeout: 3, read_timeout: 4, max_bytes: 100, http: "nope", unknown: "ignored")
+    configuration.merge!(
+      open_timeout: 3,
+      read_timeout: 4,
+      max_bytes: 100,
+      cache_ttl: 60,
+      http: "nope",
+      cache: "nope",
+      unknown: "ignored"
+    )
 
     assert_equal 3, configuration.open_timeout
     assert_equal 4, configuration.read_timeout
     assert_equal 100, configuration.max_bytes
+    assert_equal 60, configuration.cache_ttl
     assert_nil configuration.http
+    assert_nil configuration.cache
     refute_respond_to configuration, :unknown
+  end
+
+  def test_oembed_cache_ttl_defaults_to_twelve_hours
+    configuration = RecordingStudio::ExternalEmbed::Configuration.new
+
+    assert_nil configuration.cache
+    assert_equal 12.hours, configuration.cache_ttl
+    assert_equal 12.hours, configuration.to_h.fetch(:cache_ttl)
   end
 
   def test_engine_runs_configuration_hooks

@@ -1,6 +1,6 @@
 <% dummy_page_nav(
   title: "Config",
-  subtitle: "oEmbed gateway timeouts and byte limits for RecordingStudio::ExternalEmbed.",
+  subtitle: "oEmbed gateway timeouts, byte limit, and cache for RecordingStudio::ExternalEmbed.",
   back_url: root_path
 ) %>
 
@@ -23,7 +23,7 @@
 
   <%= render FlatPack::SectionTitle::Component.new(
     title: "Initializer",
-    subtitle: "Same block the generator emits for oEmbed timeouts"
+    subtitle: "Same block the generator emits for oEmbed timeouts and cache lifetime"
   ) %>
 
   <%= render FlatPack::CodeBlock::Component.new(
@@ -34,6 +34,7 @@
         config.open_timeout = 1
         config.read_timeout = 2
         config.max_bytes = 65_536
+        config.cache_ttl = 12.hours
       end
     CODE
   ) %>
@@ -42,8 +43,13 @@
     <code class="text-(--surface-content-color)">open_timeout</code> and
     <code class="text-(--surface-content-color)">read_timeout</code> are in seconds.
     <code class="text-(--surface-content-color)">max_bytes</code> caps how much of an oEmbed JSON response is read.
-    <code class="text-(--surface-content-color)">http</code> and
-    <code class="text-(--surface-content-color)">resolver</code> are test seams and are ignored when configuration is
-    loaded from YAML.
+    <code class="text-(--surface-content-color)">cache_ttl</code> is how long a successful oEmbed response stays in the cache.
+    The default is 12 hours. Failed lookups are not cached.
+    <code class="text-(--surface-content-color)">cache</code> chooses the store. Leave it unset to use
+    <code class="text-(--surface-content-color)">Rails.cache</code>.
+    <code class="text-(--surface-content-color)">http</code>,
+    <code class="text-(--surface-content-color)">resolver</code>, and
+    <code class="text-(--surface-content-color)">cache</code> are runtime settings and are ignored when configuration is
+    loaded from YAML. <code class="text-(--surface-content-color)">cache_ttl</code> is loaded from YAML.
   </p>
 </div>

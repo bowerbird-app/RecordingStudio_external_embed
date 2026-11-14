@@ -3,7 +3,7 @@
 require "test_helper"
 
 class DummyExternalEmbedProvidersTest < ActiveSupport::TestCase
-  test "dummy initializer registers extra providers alongside youtube" do
+  test "catalog includes built-in and dummy providers" do
     keys = RecordingStudio::ExternalEmbed.send(:providers).map(&:key)
 
     assert_includes keys, :youtube

@@ -1,5 +1,17 @@
 # Upgrading
 
+## 0.3.0
+
+Vimeo is a built-in provider. Remove a host registration for `:vimeo`, or for `vimeo.com`, `www.vimeo.com`, or `player.vimeo.com`, before booting. The gem raises `RecordingStudio::ExternalEmbed::Conflict` when those are registered again.
+
+`vimeo.com/VIDEO_ID`, `www.vimeo.com/VIDEO_ID`, `vimeo.com/VIDEO_ID/HASH`, `player.vimeo.com/video/VIDEO_ID`, and `player.vimeo.com/video/VIDEO_ID?h=HASH` are the recognized shapes. `vimeo.com/video/VIDEO_ID` is not.
+
+oEmbed responses are cached in `Rails.cache` for 12 hours, keyed by provider and canonical URL. Set `config.cache` to use another store. Set `config.cache_ttl` to change the lifetime. Failed lookups are not cached. Open timeout stays 1 second. Read timeout stays 2 seconds.
+
+Provider templates may include one `{hash}` placeholder when a match captures a hash. A clause may set `canonical:`. A path match may set `hash_param:` and an anchored `hash_pattern:`.
+
+## Earlier upgrades
+
 This gem requires `recording_studio` 6.1.0 or newer (`>= 6.1.0` in the gemspec), Rails `~> 8.1.0`, and Ruby 3.3 or newer.
 
 The dummy host pins Recording Studio `v6.10.0`, Flatpack `v0.1.366`, Accessible `v0.37.0`, Trashable `v0.14.1`, Cache `v0.6.3`, Root Switchable `v0.15.0`, and Metrics `v0.8.0`. Those tags declare `recording_studio` 6.1 or newer, so the dummy does not rewrite gemspec requirements.

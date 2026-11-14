@@ -62,6 +62,90 @@ class ExternalEmbedProviderTest < Minitest::Test
     assert_equal "https://alt.play.videos.test/e/abcd1234", alt_embed.embed_url
   end
 
+  def test_a_hash_placeholder_requires_a_clause_that_captures_a_hash
+    error = assert_raises(RecordingStudio::ExternalEmbed::DefinitionError) do
+      RecordingStudio::ExternalEmbed::Provider.define(:bad_hash) do
+        host "videos.test"
+        embed_host "play.videos.test"
+        embeds_as "https://play.videos.test/e/{id}?h={hash}"
+        canonical "https://videos.test/v/{id}/{hash}"
+        match content_type: :video, aspect: Rational(16, 9) do
+          path %r{\A/v/(?<id>[a-z0-9]{8})\z}
+        end
+      end
+    end
+
+    assert_equal "template hash does not match the clause", error.message
+  end
+
+  def test_a_hash_capture_requires_one_hash_placeholder
+    error = assert_raises(RecordingStudio::ExternalEmbed::DefinitionError) do
+      RecordingStudio::ExternalEmbed::Provider.define(:missing_hash) do
+        host "videos.test"
+        embed_host "play.videos.test"
+        embeds_as "https://play.videos.test/e/{id}"
+        canonical "https://videos.test/v/{id}"
+        match content_type: :video, aspect: Rational(16, 9) do
+          path %r{\A/v/(?<id>[a-z0-9]{8})/(?<hash>[a-z0-9]{4})\z},
+               embeds_as: "https://play.videos.test/e/{id}",
+               canonical: "https://videos.test/v/{id}"
+        end
+      end
+    end
+
+    assert_equal "template hash does not match the clause", error.message
+  end
+
+  def test_a_template_rejects_a_second_hash_placeholder
+    error = assert_raises(RecordingStudio::ExternalEmbed::DefinitionError) do
+      RecordingStudio::ExternalEmbed::Provider.define(:two_hashes) do
+        host "videos.test"
+        embed_host "play.videos.test"
+        embeds_as "https://play.videos.test/{hash}/e/{id}?h={hash}"
+        canonical "https://videos.test/v/{id}"
+        match content_type: :video, aspect: Rational(16, 9) do
+          path %r{\A/v/(?<id>[a-z0-9]{8})\z}
+        end
+      end
+    end
+
+    assert_equal "template must contain one hash", error.message
+  end
+
+  def test_a_hash_cannot_move_the_template_onto_another_host
+    error = assert_raises(RecordingStudio::ExternalEmbed::DefinitionError) do
+      RecordingStudio::ExternalEmbed::Provider.define(:hash_host) do
+        host "videos.test"
+        embed_host "play.videos.test"
+        embeds_as "https://{hash}.videos.test/e/{id}"
+        canonical "https://videos.test/v/{id}"
+        match content_type: :video, aspect: Rational(16, 9) do
+          path %r{\A/v/(?<id>[a-z0-9]{8})/(?<hash>[a-z0-9]{4})\z},
+               embeds_as: "https://play.videos.test/e/{id}?h={hash}",
+               canonical: "https://videos.test/v/{id}/{hash}"
+        end
+      end
+    end
+
+    assert_equal "template is not a trusted https url", error.message
+  end
+
+  def test_a_hash_query_pattern_must_be_anchored
+    error = assert_raises(RecordingStudio::ExternalEmbed::DefinitionError) do
+      RecordingStudio::ExternalEmbed::Provider.define(:loose_hash) do
+        host "videos.test"
+        embed_host "play.videos.test"
+        embeds_as "https://play.videos.test/e/{id}"
+        canonical "https://videos.test/v/{id}"
+        match content_type: :video, aspect: Rational(16, 9) do
+          path %r{\A/v/(?<id>[a-z0-9]{8})\z}, hash_param: "h", hash_pattern: /[a-z0-9]+/
+        end
+      end
+    end
+
+    assert_equal "hash pattern must be anchored", error.message
+  end
+
   def test_a_template_cannot_point_the_iframe_at_an_undeclared_host
     error = assert_raises(RecordingStudio::ExternalEmbed::DefinitionError) do
       RecordingStudio::ExternalEmbed::Provider.define(:bad) do

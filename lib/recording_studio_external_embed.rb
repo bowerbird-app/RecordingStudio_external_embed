@@ -8,6 +8,7 @@ require "recording_studio_external_embed/embed"
 require "recording_studio_external_embed/provider"
 require "recording_studio_external_embed/oembed"
 require "recording_studio_external_embed/youtube"
+require "recording_studio_external_embed/vimeo"
 require "recording_studio_external_embed/helper"
 require "recording_studio_external_embed/engine"
 
@@ -66,7 +67,7 @@ module RecordingStudio
       end
 
       def providers
-        @providers ||= [YouTube.build].freeze
+        @providers ||= [YouTube.build, Vimeo.build].freeze
       end
 
       def append_provider(provider)
@@ -110,6 +111,6 @@ module RecordingStudio
       end
     end
 
-    private_constant :Ingress, :YouTube
+    private_constant :Ingress, :YouTube, :Vimeo
   end
 end
