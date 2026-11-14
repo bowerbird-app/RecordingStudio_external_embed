@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioExternalEmbedTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.2.2", RecordingStudio::ExternalEmbed::VERSION
+    assert_equal "0.3.0", RecordingStudio::ExternalEmbed::VERSION
   end
 
   def test_engine_exists
@@ -226,7 +226,14 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     assert_includes readme, "RecordingStudio::ExternalEmbed"
     assert_includes readme, "RecordingStudioEmbeddable"
     assert_includes readme, "youtube-nocookie.com/embed"
+    assert_includes readme, "player.vimeo.com/video"
+    assert_includes readme, "vimeo.com/api/oembed.json"
+    assert_includes readme, "cache_ttl"
+    assert_includes readme, "i.vimeocdn.com"
     assert_includes readme, "Provider.define"
+    upgrading = File.read(File.expand_path("../UPGRADING.md", __dir__))
+    assert_includes upgrading, "Remove a host registration for `:vimeo`"
+    assert_includes upgrading, "config.cache_ttl"
     assert_includes readme, "Rails 8.1, and `recording_studio` 6.1 or newer"
     refute_includes readme, "v0.1.133"
     refute_includes readme, "v3 declarations"

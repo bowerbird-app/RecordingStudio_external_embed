@@ -9,7 +9,8 @@ Gem::Specification.new do |spec|
   spec.homepage    = "https://github.com/bowerbird-app/RecordingStudio_external_embed"
   spec.summary     = "Resolve and render external embeds inside Recording Studio"
   spec.description = "RecordingStudio::ExternalEmbed turns an external URL into a normalized embed " \
-                     "and a safe iframe. YouTube is the first provider. oEmbed is an allowlisted strategy."
+                     "and a safe iframe. YouTube and Vimeo are the built-in providers. " \
+                     "oEmbed is an allowlisted strategy."
   spec.license     = "MIT"
   spec.required_ruby_version = ">= 3.3.0"
 

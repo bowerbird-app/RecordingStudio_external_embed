@@ -11,17 +11,19 @@ module RecordingStudio
   module ExternalEmbed
     module Oembed
       class Presentation
-        attr_reader :title, :author_name, :author_url, :thumbnail_url
+        attr_reader :title, :author_name, :author_url, :thumbnail_url, :width, :height
 
         def self.empty
-          new(title: nil, author_name: nil, author_url: nil, thumbnail_url: nil)
+          new(title: nil, author_name: nil, author_url: nil, thumbnail_url: nil, width: nil, height: nil)
         end
 
-        def initialize(title:, author_name:, author_url:, thumbnail_url:)
-          @title = title
-          @author_name = author_name
-          @author_url = author_url
-          @thumbnail_url = thumbnail_url
+        def initialize(**attrs)
+          @title = attrs[:title]
+          @author_name = attrs[:author_name]
+          @author_url = attrs[:author_url]
+          @thumbnail_url = attrs[:thumbnail_url]
+          @width = attrs[:width]
+          @height = attrs[:height]
           freeze
         end
       end
@@ -112,29 +114,40 @@ module RecordingStudio
       end
 
       class Gateway
-        def self.lookup(endpoint, canonical_url)
-          new(endpoint, canonical_url).lookup
+        def self.lookup(endpoint, canonical_url, provider:)
+          new(endpoint, canonical_url, provider).lookup
         end
 
-        def initialize(endpoint, canonical_url)
+        def initialize(endpoint, canonical_url, provider)
           @endpoint = endpoint
           @canonical_url = canonical_url
+          @provider = provider
         end
 
         def lookup
-          uri = request_uri
-          return Presentation.empty unless uri && safe_destination?(uri)
+          cached = ResponseCache.read(@provider, @canonical_url)
+          return cached if cached
 
-          status, body = fetch(uri)
-          return Presentation.empty unless status.to_i == 200
-
-          map(body)
+          presentation = retrieve
+          ResponseCache.write(@provider, @canonical_url, presentation) if presentation
+          presentation || Presentation.empty
         rescue JSON::ParserError, IOError, SystemCallError, Timeout::Error,
                SocketError, Resolv::ResolvError, OpenSSL::SSL::SSLError, Net::ProtocolError
           Presentation.empty
         end
 
         private
+
+        def retrieve
+          uri = request_uri
+          @address = uri && AddressGuard.safe_address(resolve(uri.host))
+          return nil unless @address
+
+          status, body = fetch(uri)
+          return nil unless status.to_i == 200
+
+          map(body)
+        end
 
         def request_uri
           uri = URI.parse(@endpoint.endpoint)
@@ -149,11 +162,6 @@ module RecordingStudio
           nil
         end
 
-        def safe_destination?(uri)
-          @address = AddressGuard.safe_address(resolve(uri.host))
-          !@address.nil?
-        end
-
         def resolve(host)
           resolver = RecordingStudio::ExternalEmbed.configuration.resolver
           return resolver.call(host) if resolver
@@ -165,50 +173,48 @@ module RecordingStudio
           client = RecordingStudio::ExternalEmbed.configuration.http
           return client.call(uri) if client
 
-          live_fetch(uri)
-        end
-
-        def live_fetch(uri)
-          response = pinned_http(uri).start { |client| client.request(Net::HTTP::Get.new(uri)) }
+          response = pinned_http(uri).start { |http| http.request(Net::HTTP::Get.new(uri)) }
           limited_body(response)
         end
 
         def pinned_http(uri)
+          settings = RecordingStudio::ExternalEmbed.configuration
           http = Net::HTTP.new(uri.host, uri.port)
           http.ipaddr = @address
           http.use_ssl = true
-          http.open_timeout = configuration.open_timeout
-          http.read_timeout = configuration.read_timeout
+          http.open_timeout = settings.open_timeout
+          http.read_timeout = settings.read_timeout
           http.max_retries = 0
           http
         end
 
         def limited_body(response)
           body = response.body.to_s
-          return [response.code.to_i, nil] if body.bytesize > configuration.max_bytes
+          limit = RecordingStudio::ExternalEmbed.configuration.max_bytes
+          return [response.code.to_i, nil] if body.bytesize > limit
 
           [response.code.to_i, body]
         end
 
-        def configuration
-          RecordingStudio::ExternalEmbed.configuration
-        end
-
         def map(body)
           data = parsed_hash(body)
-          return Presentation.empty unless data
+          return nil unless data
 
           data.delete("html")
           Presentation.new(
-            title: clean_text(data["title"]),
-            author_name: clean_text(data["author_name"]),
+            title: clean_text(data["title"]), author_name: clean_text(data["author_name"]),
             author_url: https_url(data["author_url"]),
-            thumbnail_url: https_url(data["thumbnail_url"], hosts: @endpoint.thumbnail_hosts)
+            thumbnail_url: https_url(data["thumbnail_url"], hosts: @endpoint.thumbnail_hosts),
+            width: counted(data["width"]), height: counted(data["height"])
           )
         end
 
+        def counted(value)
+          value if value.is_a?(Integer) && value.positive?
+        end
+
         def parsed_hash(body)
-          return nil if body.to_s.bytesize > configuration.max_bytes
+          return nil if body.to_s.bytesize > RecordingStudio::ExternalEmbed.configuration.max_bytes
 
           data = JSON.parse(body.to_s)
           data if data.is_a?(Hash)
@@ -233,6 +239,52 @@ module RecordingStudio
           uri.to_s
         rescue URI::InvalidURIError
           nil
+        end
+      end
+
+      class ResponseCache
+        def self.read(provider, canonical_url)
+          new(provider, canonical_url).read
+        end
+
+        def self.write(provider, canonical_url, presentation)
+          new(provider, canonical_url).write(presentation)
+        end
+
+        def initialize(provider, canonical_url)
+          @key = [:recording_studio_external_embed, :oembed, provider, canonical_url]
+        end
+
+        def read
+          store = cache_store
+          return nil unless store
+
+          value = store.read(@key)
+          value if value.is_a?(Presentation)
+        rescue StandardError
+          nil
+        end
+
+        def write(presentation)
+          store = cache_store
+          return unless store
+
+          store.write(@key, presentation, expires_in: configuration.cache_ttl)
+        rescue StandardError
+          nil
+        end
+
+        private
+
+        def cache_store
+          return configuration.cache if configuration.cache
+          return unless defined?(Rails) && Rails.respond_to?(:application) && Rails.application
+
+          Rails.cache
+        end
+
+        def configuration
+          RecordingStudio::ExternalEmbed.configuration
         end
       end
     end

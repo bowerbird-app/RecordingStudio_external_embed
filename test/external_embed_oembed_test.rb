@@ -59,6 +59,17 @@ class ExternalEmbedOembedTest < Minitest::Test
     assert_equal true, embed.supported?
   end
 
+  def test_live_oembed_http_is_blocked_in_tests
+    RecordingStudio::ExternalEmbed.configuration.http = nil
+    gateway = RecordingStudio::ExternalEmbed.const_get(:Oembed)::Gateway.new(nil, nil, :clip)
+
+    error = assert_raises(RuntimeError) do
+      gateway.send(:fetch, URI("https://oembed.invalid/oembed"))
+    end
+
+    assert_equal "oEmbed HTTP must be stubbed in tests", error.message
+  end
+
   def test_a_failed_oembed_response_keeps_the_constructed_embed
     RecordingStudio::ExternalEmbed.configuration.http = ->(_uri) { [500, "nope"] }
 

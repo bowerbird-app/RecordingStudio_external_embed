@@ -29,38 +29,44 @@ module RecordingStudio
       end
 
       def resolve(ingress)
-        clause, external_id = capture(ingress)
+        clause, captured = capture(ingress)
         return Unresolved.malformed(ingress.original) unless clause
 
-        Embed.materialize(**attributes_for(ingress, clause, external_id))
+        Embed.materialize(**attributes_for(ingress, clause, captured))
       rescue ArgumentError
         Unresolved.malformed(ingress.original)
       end
 
-      def attributes_for(ingress, clause, external_id)
-        presentation = decorate(external_id)
-        identity_attributes(ingress, clause, external_id).merge(presentation_attributes(presentation, clause))
+      def attributes_for(ingress, clause, captured)
+        presentation = decorate(clause, captured)
+        identity_attributes(ingress, clause, captured).merge(presentation_attributes(presentation, clause))
       end
 
-      def identity_attributes(ingress, clause, external_id)
+      def identity_attributes(ingress, clause, captured)
         {
           source_url: ingress.original,
-          canonical_url: expand(canonical_template, external_id),
-          embed_url: expand(embed_template_for(clause), external_id),
+          canonical_url: expand(canonical_template_for(clause), captured.id, captured.unlisted_hash),
+          embed_url: expand(clause.embed_template || embed_template, captured.id, captured.unlisted_hash),
           provider: key,
           provider_label: label,
           content_type: clause.content_type,
-          external_id: external_id
+          external_id: captured.id
         }
       end
 
-      def embed_template_for(clause)
-        clause.embed_template || embed_template
+      def canonical_template_for(clause)
+        clause.canonical_template || canonical_template
       end
 
       def presentation_attributes(presentation, clause)
-        width, height = dimensions(clause.aspect)
-        text_attributes(presentation).merge(frame_attributes(width, height, clause.aspect))
+        aspect = aspect_for(presentation, clause)
+        width, height = dimensions(aspect)
+        text_attributes(presentation).merge(frame_attributes(width, height, aspect))
+      end
+
+      def aspect_for(presentation, clause)
+        pair = [presentation.width, presentation.height]
+        pair.all? { |number| number.is_a?(Integer) && number.positive? } ? Rational(*pair) : clause.aspect
       end
 
       def text_attributes(presentation)
@@ -78,25 +84,33 @@ module RecordingStudio
       end
 
       def capture(ingress)
+        plain = nil
         clauses.each do |clause|
           next unless clause.hosts.include?(ingress.host)
 
-          external_id = clause.capture(ingress)
-          return [clause, external_id] if external_id
+          captured = clause.capture(ingress)
+          next unless captured
+          return [clause, captured] if captured.unlisted_hash
+
+          plain ||= [clause, captured]
         end
-        nil
+        plain
       end
 
-      def decorate(external_id)
+      def decorate(clause, captured)
         return Oembed::Presentation.empty unless oembed
 
-        Oembed::Gateway.lookup(oembed, expand(canonical_template, external_id))
+        canonical_url = expand(canonical_template_for(clause), captured.id, captured.unlisted_hash)
+        Oembed::Gateway.lookup(oembed, canonical_url, provider: key)
       end
 
-      def expand(template, external_id)
+      def expand(template, external_id, unlisted_hash = nil)
         raise ArgumentError, "external id is invalid" unless external_id.match?(ID_CHARSET)
 
-        template.sub("{id}", external_id)
+        invalid_hash = template.include?("{hash}") && !(unlisted_hash.is_a?(String) && unlisted_hash.match?(ID_CHARSET))
+        raise ArgumentError, "hash is invalid" if invalid_hash
+
+        template.sub("{id}", external_id).sub("{hash}", unlisted_hash.to_s)
       end
 
       def dimensions(aspect)
@@ -171,10 +185,12 @@ module RecordingStudio
           raise DefinitionError, "provider needs a host" if @hosts.empty?
           raise DefinitionError, "provider needs a match" if @clauses.empty?
 
-          allowed = (@hosts + @embed_hosts).uniq
-          check_template(@embed_template, allowed)
-          check_template(@canonical_template, allowed)
-          @clauses.each { |clause| check_template(clause.embed_template, allowed) if clause.embed_template }
+          Templates.review(
+            embed_template: @embed_template,
+            canonical_template: @canonical_template,
+            clauses: @clauses,
+            allowed_hosts: (@hosts + @embed_hosts).uniq
+          )
         end
 
         def valid_key?
@@ -204,29 +220,74 @@ module RecordingStudio
         def acceptable_host?(value)
           value.match?(/\A[a-z0-9.-]+\z/) && !value.include?("..") && !value.start_with?(".") && !value.end_with?(".")
         end
+      end
 
-        def check_template(template, allowed_hosts)
-          raise DefinitionError, "template must contain one id" unless one_id?(template)
-          return if trusted_template?(template, allowed_hosts)
+      class Templates
+        def self.review(embed_template:, canonical_template:, clauses:, allowed_hosts:)
+          new(embed_template, canonical_template, allowed_hosts).review(clauses)
+        end
+
+        def initialize(embed_template, canonical_template, allowed_hosts)
+          @embed_template = embed_template
+          @canonical_template = canonical_template
+          @allowed_hosts = allowed_hosts
+        end
+
+        def review(clauses)
+          check(@embed_template)
+          check(@canonical_template)
+          clauses.each { |clause| review_clause(clause) }
+        end
+
+        private
+
+        def review_clause(clause)
+          check(clause.embed_template) if clause.embed_template
+          check(clause.canonical_template) if clause.canonical_template
+          agree(clause)
+        end
+
+        def agree(clause)
+          expected = clause.captures_hash?
+          [picked(clause, :embed), picked(clause, :canonical)].each do |template|
+            found = template.scan("{hash}").size == 1
+            raise DefinitionError, "template hash does not match the clause" unless found == expected
+          end
+        end
+
+        def picked(clause, kind)
+          override = kind == :embed ? clause.embed_template : clause.canonical_template
+          override || (kind == :embed ? @embed_template : @canonical_template)
+        end
+
+        def check(template)
+          raise DefinitionError, "template must contain one id" unless one?(template, "{id}")
+          raise DefinitionError, "template must contain one hash" unless one_hash?(template)
+          return if trusted?(template)
 
           raise DefinitionError, "template is not a trusted https url"
         end
 
-        def one_id?(template)
-          template.is_a?(String) && template.scan("{id}").size == 1
+        def one_hash?(template)
+          template.is_a?(String) && template.scan("{hash}").size <= 1
         end
 
-        def trusted_template?(template, allowed_hosts)
-          uri = URI.parse(template.sub("{id}", "placeholder"))
-          https_template?(uri, allowed_hosts)
+        def one?(template, token)
+          template.is_a?(String) && template.scan(token).size == 1
+        end
+
+        def trusted?(template)
+          sample = template.sub("{id}", "placeholder").sub("{hash}", "placeholder")
+          uri = URI.parse(sample)
+          https?(uri)
         rescue URI::InvalidURIError
           false
         end
 
-        def https_template?(uri, allowed_hosts)
+        def https?(uri)
           return false unless uri.is_a?(URI::HTTPS)
           return false if uri.userinfo
-          return false unless allowed_hosts.include?(uri.host)
+          return false unless @allowed_hosts.include?(uri.host)
 
           uri.port.nil? || uri.port == 443
         end
@@ -239,34 +300,50 @@ module RecordingStudio
           @aspect = aspect
         end
 
-        def path(regexp, hosts: nil, embeds_as: nil)
+        def path(regexp, **options)
           raise DefinitionError, "path pattern must capture id" unless anchored?(regexp) && regexp.names.include?("id")
 
-          @builder.add_clause(
-            clause_for(hosts: hosts, path: regexp, param: nil, value_pattern: nil, embed_template: embeds_as)
-          )
+          check_hash_names(regexp, options[:hash_param])
+          check_hash_param(options[:hash_param], options[:hash_pattern])
+          add_match(path_attrs(regexp, options))
         end
 
         def query(param, pattern:, path:, hosts: nil, embeds_as: nil)
           raise DefinitionError, "query path must be anchored" unless anchored?(path)
           raise DefinitionError, "query pattern must be anchored" unless anchored?(pattern)
           raise DefinitionError, "query path must not capture id" if path.names.include?("id")
+          raise DefinitionError, "query path must not capture hash" if path.names.include?("hash")
 
-          @builder.add_clause(
-            clause_for(hosts: hosts, path: path, param: param.to_s, value_pattern: pattern, embed_template: embeds_as)
-          )
+          add_match(hosts:, path:, param: param.to_s, value_pattern: pattern, embed_template: embeds_as)
         end
 
-        def clause_for(hosts:, path:, param:, value_pattern:, embed_template:)
-          Clause.new(
-            hosts: selected_hosts(hosts),
-            content_type: @content_type,
-            aspect: @aspect,
-            path: path,
-            param: param,
-            value_pattern: value_pattern,
-            embed_template: embed_template
-          )
+        def path_attrs(regexp, options)
+          {
+            hosts: options[:hosts], path: regexp, param: nil, value_pattern: nil,
+            embed_template: options[:embeds_as], canonical_template: options[:canonical],
+            hash_param: options[:hash_param]&.to_s, hash_pattern: options[:hash_pattern]
+          }
+        end
+
+        def add_match(attrs)
+          attrs[:hosts] = selected_hosts(attrs[:hosts])
+          attrs[:content_type] = @content_type
+          attrs[:aspect] = @aspect
+          @builder.add_clause(Clause.new(attrs))
+        end
+
+        def check_hash_names(regexp, hash_param)
+          unknown = regexp.names - %w[id hash]
+          raise DefinitionError, "path pattern captures an unknown name" unless unknown.empty?
+          raise DefinitionError, "hash is captured twice" if hash_param && regexp.names.include?("hash")
+        end
+
+        def check_hash_param(hash_param, hash_pattern)
+          return if hash_param.nil? && hash_pattern.nil?
+
+          raise DefinitionError, "hash pattern needs a param" if hash_param.nil?
+          raise DefinitionError, "hash param is invalid" unless hash_param.to_s.match?(/\A[a-z][a-z0-9_]*\z/)
+          raise DefinitionError, "hash pattern must be anchored" unless anchored?(hash_pattern)
         end
 
         private
@@ -286,7 +363,8 @@ module RecordingStudio
       end
 
       class Clause
-        attr_reader :hosts, :content_type, :aspect, :path, :param, :value_pattern, :embed_template
+        attr_reader :hosts, :content_type, :aspect, :path, :param, :value_pattern, :embed_template,
+                    :canonical_template, :hash_param, :hash_pattern
 
         def initialize(attrs)
           @hosts = attrs.fetch(:hosts)
@@ -296,18 +374,56 @@ module RecordingStudio
           @param = attrs.fetch(:param)
           @value_pattern = attrs.fetch(:value_pattern)
           @embed_template = attrs[:embed_template]
+          @canonical_template = attrs[:canonical_template]
+          @hash_param, @hash_pattern = attrs.values_at(:hash_param, :hash_pattern)
           freeze
         end
 
-        def capture(ingress)
-          if param
-            return nil unless path.match?(ingress.path)
+        def captures_hash?
+          return true if hash_param
+          return false if param
 
-            certify(ingress.query[param], value_pattern)
-          else
-            match = path.match(ingress.path)
-            certify(match && match[:id], ID_CHARSET)
-          end
+          path.names.include?("hash")
+        end
+
+        def capture(ingress)
+          return capture_query_hash(ingress) if hash_param
+          return capture_query_id(ingress) if param
+
+          capture_path(ingress)
+        end
+
+        def capture_query_id(ingress)
+          return nil unless path.match?(ingress.path)
+
+          id = certify(ingress.query[param], value_pattern)
+          id && Capture.new(id: id, unlisted_hash: nil)
+        end
+
+        def capture_query_hash(ingress)
+          match = path.match(ingress.path)
+          return nil unless match
+          return nil if ingress.query[hash_param].nil?
+
+          id = certify(match[:id], ID_CHARSET)
+          unlisted_hash = certify(ingress.query[hash_param], hash_pattern)
+          raise ArgumentError, "hash is invalid" unless id && unlisted_hash
+
+          Capture.new(id: id, unlisted_hash: unlisted_hash)
+        end
+
+        def capture_path(ingress)
+          match = path.match(ingress.path)
+          return nil unless match
+
+          id = certify(match[:id], ID_CHARSET)
+          return nil unless id
+          return Capture.new(id: id, unlisted_hash: nil) unless path.names.include?("hash")
+
+          unlisted_hash = certify(match[:hash], ID_CHARSET)
+          return nil unless unlisted_hash
+
+          Capture.new(id: id, unlisted_hash: unlisted_hash)
         end
 
         def certify(raw, pattern)
@@ -319,7 +435,8 @@ module RecordingStudio
         end
       end
 
-      private_constant :Builder, :Matcher, :Clause
+      Capture = Data.define(:id, :unlisted_hash)
+      private_constant :Builder, :Templates, :Matcher, :Clause, :Capture
     end
   end
 end

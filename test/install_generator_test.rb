@@ -25,5 +25,6 @@ class InstallGeneratorTest < Minitest::Test
     )
 
     assert_includes template, "RecordingStudio::ExternalEmbed.configure"
+    assert_includes template, "config.cache_ttl = 12.hours"
   end
 end
