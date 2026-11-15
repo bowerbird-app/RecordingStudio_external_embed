@@ -4,17 +4,18 @@ require "test_helper"
 
 class RecordingStudioExternalEmbedTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.5.0", RecordingStudio::ExternalEmbed::VERSION
+    assert_equal "0.6.0", RecordingStudio::ExternalEmbed::VERSION
   end
 
   def test_engine_exists
     assert_kind_of Class, RecordingStudio::ExternalEmbed::Engine
   end
 
-  def test_gemspec_requires_recording_studio_6_1
+  def test_gemspec_requires_recording_studio_7
     gemspec = File.read(File.expand_path("../recording_studio_external_embed.gemspec", __dir__))
 
-    assert_includes gemspec, 'spec.add_dependency "recording_studio", ">= 6.1.0"'
+    assert_includes gemspec, 'spec.add_dependency "recording_studio", ">= 7.0", "< 8.0"'
+    refute_includes gemspec, '"recording_studio", ">= 6.1.0"'
     refute_includes gemspec, '"recording_studio", "~> 4'
   end
 
@@ -42,15 +43,15 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     assert_includes install_script, "fetch-skills.sh"
   end
 
-  def test_dummy_gemfile_pins_recording_studio_6_1_and_flatpack
+  def test_dummy_gemfile_pins_recording_studio_7_and_flatpack
     gemfile = File.read(File.expand_path("dummy/Gemfile", __dir__))
     root_gemfile = File.read(File.expand_path("../Gemfile", __dir__))
 
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.10.0"'
-    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.10.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.37.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.14.1", require: false'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.15.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.0.0"'
+    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.0.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.43.1"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.16.1", require: false'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.15.1"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_cache", tag: "v0.6.3"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.8.0"'
     assert_includes gemfile, 'tag: "v0.1.366"'
@@ -64,6 +65,10 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.17.0"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.18.0"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.11.0", require: false'
+    refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.10.0"'
+    refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.37.0"'
+    refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.14.1", require: false'
+    refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.15.0"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.7.0"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.31.0"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.14.0", require: false'
@@ -238,10 +243,13 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     assert_includes readme, "Provider.define"
     upgrading = File.read(File.expand_path("../UPGRADING.md", __dir__))
     assert_includes upgrading, "Remove a host registration for `:vimeo`"
+    assert_includes upgrading, "requires `recording_studio` `>= 7.0`, `< 8.0`"
+    assert_includes upgrading, "create_root_recording!"
+    assert_includes upgrading, "Recording Studio `v7.0.0`"
     assert_includes upgrading, "config.cache_ttl"
     assert_includes upgrading, "Embed#metadata_status"
     assert_includes upgrading, "metadata_retryable?"
-    assert_includes readme, "Rails 8.1, and `recording_studio` 6.1 or newer"
+    assert_includes readme, "Rails 8.1, and `recording_studio` 7.0 or newer, below 8"
     refute_includes readme, "v0.1.133"
     refute_includes readme, "v3 declarations"
     refute_includes readme, "RecordingStudio v3"

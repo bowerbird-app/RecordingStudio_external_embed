@@ -1,5 +1,22 @@
 # Upgrading
 
+## 0.6.0
+
+This gem requires `recording_studio` `>= 7.0`, `< 8.0`. Rails stays `~> 8.1.0`. Ruby stays 3.3 or newer.
+
+`RecordingStudio.root_recording_for` only finds a root. It returns nil when that recordable has none. A seed, setup task, or request that created a root by looking it up now calls `RecordingStudio.create_root_recording!(recordable)` with an actor. A later call returns the same root and does not append another event.
+
+The dummy host pins Recording Studio `v7.0.0`, Flatpack `v0.1.366`, Accessible `v0.43.1`, Trashable `v0.16.1`, Cache `v0.6.3`, Root Switchable `v0.15.1`, and Metrics `v0.8.0`. Accessible `0.37.0`, Trashable `0.14.1`, and Root Switchable `0.15.0` refuse Recording Studio 7, so those three pins moved. Cache, Metrics, and Flatpack stay on the same tags. The dummy still mounts the same pages, seeds, and tests.
+
+Dummy seeds look up an existing child with `Recording.kept`. Trashable `0.16` removed `recording_studio_trashable_kept_sql`.
+
+Hosts on an older Recording Studio core need to:
+
+1. Upgrade `recording_studio` to 7.0.0 or newer, below 8. Core 7 adds no migration for the root split. `recording_studio_events.root_recording_id` is still required. Copy `20261114090000_add_root_recording_id_to_recording_studio_events` from core if that column is missing, then migrate.
+2. Run `bundle update recording_studio recording_studio_external_embed`.
+3. Replace root creation that called `root_recording_for` with `create_root_recording!`. Leave real lookups on `root_recording_for` and handle nil.
+4. Follow the Recording Studio 7 upgrade notes before expecting this addon to boot.
+
 ## 0.5.0
 
 YouTube embeds set `thumbnail_url` to `https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg`. The URL is built from the video id. Resolve still does not call YouTube. `metadata_status` stays `:none`.
@@ -30,13 +47,13 @@ Provider templates may include one `{hash}` placeholder when a match captures a 
 
 ## Earlier upgrades
 
-This gem requires `recording_studio` 6.1.0 or newer (`>= 6.1.0` in the gemspec), Rails `~> 8.1.0`, and Ruby 3.3 or newer.
+Before 0.6.0 this gem required `recording_studio` 6.1.0 or newer (`>= 6.1.0` in the gemspec), Rails `~> 8.1.0`, and Ruby 3.3 or newer.
 
-The dummy host pins Recording Studio `v6.10.0`, Flatpack `v0.1.366`, Accessible `v0.37.0`, Trashable `v0.14.1`, Cache `v0.6.3`, Root Switchable `v0.15.0`, and Metrics `v0.8.0`. Those tags declare `recording_studio` 6.1 or newer, so the dummy does not rewrite gemspec requirements.
+The 0.5.0 dummy host pinned Recording Studio `v6.10.0`, Flatpack `v0.1.366`, Accessible `v0.37.0`, Trashable `v0.14.1`, Cache `v0.6.3`, Root Switchable `v0.15.0`, and Metrics `v0.8.0`. Those tags declared `recording_studio` 6.1 or newer, so the dummy did not rewrite gemspec requirements.
 
-Hosts on an older Recording Studio core need to:
+Hosts moving onto that 6.x line needed to:
 
-1. Upgrade `recording_studio` to 6.1.0 or newer (6.10.0 matches this dummy). Recording Studio 6.9 and newer also need the `root_recording_id` column on `recording_studio_events`. Copy `20261114090000_add_root_recording_id_to_recording_studio_events` from core and migrate.
+1. Upgrade `recording_studio` to 6.1.0 or newer (6.10.0 matched that dummy). Recording Studio 6.9 and newer also need the `root_recording_id` column on `recording_studio_events`. Copy `20261114090000_add_root_recording_id_to_recording_studio_events` from core and migrate.
 2. Run `bundle update recording_studio recording_studio_external_embed`.
 3. Follow Recording Studio upgrade notes in that gem before expecting this addon to boot.
 

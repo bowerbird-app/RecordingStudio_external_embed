@@ -23,6 +23,7 @@ RecordingStudioRootSwitchable.configure do |config|
     scope.description = "Every workspace root in the dummy app."
     scope.available_roots = lambda do |**|
       Workspace.order(:name).filter_map do |workspace|
+        # Lookup only. A workspace with no root stays off the switcher.
         RecordingStudio.root_recording_for(workspace)
       end
     end
