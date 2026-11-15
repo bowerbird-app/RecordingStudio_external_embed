@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.6.0
+
+- Require `recording_studio` `>= 7.0`, `< 8.0`.
+- Pin development and dummy Recording Studio to `v7.0.0`.
+- Move dummy Accessible to `v0.43.1`, Trashable to `v0.16.1`, and Root Switchable to `v0.15.1`. Those tags accept core 7. Flatpack stays `v0.1.366`, Cache stays `v0.6.3`, and Metrics stays `v0.8.0`.
+- Dummy seeds and tests create roots with `create_root_recording!`. The root switcher still looks roots up with `root_recording_for`.
+- Dummy seed child lookup uses `Recording.kept`. Trashable 0.16 removed `recording_studio_trashable_kept_sql`.
+- Bump dummy `msgpack` to 1.8.7 (GHSA-73v3-wf97-vpgj). Bootsnap still allows `~> 1.2`.
+
 ## 0.5.0
 
 - YouTube `thumbnail_url` is `https://i.ytimg.com/vi/{id}/hqdefault.jpg`, built from the video id. Resolve still makes no HTTP request. `metadata_status` stays `:none`.
