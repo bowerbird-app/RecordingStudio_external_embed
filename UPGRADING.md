@@ -10,6 +10,8 @@ The dummy host pins Recording Studio `v7.0.0`, Flatpack `v0.1.366`, Accessible `
 
 Dummy seeds look up an existing child with `Recording.kept`. Trashable `0.16` removed `recording_studio_trashable_kept_sql`.
 
+The dummy lockfile moves `msgpack` to 1.8.7 (GHSA-73v3-wf97-vpgj). Bootsnap still depends on `msgpack ~> 1.2`.
+
 Hosts on an older Recording Studio core need to:
 
 1. Upgrade `recording_studio` to 7.0.0 or newer, below 8. Core 7 adds no migration for the root split. `recording_studio_events.root_recording_id` is still required. Copy `20261114090000_add_root_recording_id_to_recording_studio_events` from core if that column is missing, then migrate.

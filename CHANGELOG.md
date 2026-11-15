@@ -9,6 +9,7 @@
 - Move dummy Accessible to `v0.43.1`, Trashable to `v0.16.1`, and Root Switchable to `v0.15.1`. Those tags accept core 7. Flatpack stays `v0.1.366`, Cache stays `v0.6.3`, and Metrics stays `v0.8.0`.
 - Dummy seeds and tests create roots with `create_root_recording!`. The root switcher still looks roots up with `root_recording_for`.
 - Dummy seed child lookup uses `Recording.kept`. Trashable 0.16 removed `recording_studio_trashable_kept_sql`.
+- Bump dummy `msgpack` to 1.8.7 (GHSA-73v3-wf97-vpgj). Bootsnap still allows `~> 1.2`.
 
 ## 0.5.0
 

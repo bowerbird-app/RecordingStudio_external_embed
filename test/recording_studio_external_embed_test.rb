@@ -304,6 +304,14 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     refute_includes recordings_tree_view, "This tree is generated from RecordingStudio::Recording records"
   end
 
+  def test_dummy_lockfile_msgpack_is_1_8_7_or_newer
+    lockfile = File.read(File.expand_path("dummy/Gemfile.lock", __dir__))
+    spec_line = lockfile.lines.find { |line| line.match?(/\A    msgpack \(/) }
+    version = spec_line[/msgpack \(([^)]+)\)/, 1]
+
+    assert Gem::Version.new(version) >= Gem::Version.new("1.8.7"), "dummy msgpack #{version}"
+  end
+
   def test_lockfiles_use_rack_3_2_8_or_newer
     [File.expand_path("../Gemfile.lock", __dir__), File.expand_path("dummy/Gemfile.lock", __dir__)].each do |lockfile|
       spec_line = File.readlines(lockfile).find { |line| line.match?(/\A    rack \(/) }
