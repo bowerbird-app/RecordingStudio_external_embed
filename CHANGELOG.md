@@ -5,6 +5,7 @@
 - Pin development and dummy Recording Studio to `v7.3.0` and Flatpack to `v0.1.377`.
 - Move dummy Accessible to `v0.45.1`, Trashable to `v1.0.0`, Cache to `v0.7.0`, Root Switchable to `v0.16.0`, and Metrics to `v0.9.0`. The gemspec still requires `recording_studio` `>= 7.0`, `< 8.0`.
 - Lockfiles move `tailwind_merge` to 1.5.6. Flatpack `v0.1.377` requires `>= 1.5.2`, `< 2`. `view_component` stays 4.19.0 and `minitest` stays on 5.
+- Bump dummy `puma` to 8.1.1. 8.0.2 is the version in the Puma advisories fixed by 8.0.3.
 - Dummy schema does not copy Recording Studio 7.2's `index_rs_events_on_timeline`. That index is optional. Writes do not need it.
 
 ## 0.6.0
