@@ -1,5 +1,13 @@
 # Upgrading
 
+## 0.6.1
+
+This gem still requires `recording_studio` `>= 7.0`, `< 8.0`. Rails stays `~> 8.1.0`. Ruby stays 3.3 or newer.
+
+The dummy host pins Recording Studio `v7.7.1`, Flatpack `v0.1.378`, Accessible `v0.54.0`, Trashable `v1.2.0`, Cache `v0.7.0`, Root Switchable `v0.16.0`, and Metrics `v0.9.1`. Accessible `0.54.0` requires Recording Studio `>= 7.7.0`, `< 8.0`.
+
+Hosts already on Recording Studio 7.0 or newer, below 8, do not need a new migration from this gem. The dummy still omits Recording Studio 7.4's root-type creation index, 7.5's root invariant, and 7.7's root index replacement.
+
 ## 0.6.0
 
 This gem requires `recording_studio` `>= 7.0`, `< 8.0`. Rails stays `~> 8.1.0`. Ruby stays 3.3 or newer.

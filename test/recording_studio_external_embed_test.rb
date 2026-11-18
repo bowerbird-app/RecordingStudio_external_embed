@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioExternalEmbedTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.6.0", RecordingStudio::ExternalEmbed::VERSION
+    assert_equal "0.6.1", RecordingStudio::ExternalEmbed::VERSION
   end
 
   def test_engine_exists
@@ -47,15 +47,22 @@ class RecordingStudioExternalEmbedTest < Minitest::Test
     gemfile = File.read(File.expand_path("dummy/Gemfile", __dir__))
     root_gemfile = File.read(File.expand_path("../Gemfile", __dir__))
 
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.4.0"'
-    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.4.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.45.1"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v1.0.0", require: false'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.7.1"'
+    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.7.1"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.54.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v1.2.0", require: false'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.16.0"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_cache", tag: "v0.7.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.9.0"'
-    assert_includes gemfile, 'tag: "v0.1.377"'
-    assert_includes root_gemfile, 'tag: "v0.1.377"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.9.1"'
+    assert_includes gemfile, 'tag: "v0.1.378"'
+    assert_includes root_gemfile, 'tag: "v0.1.378"'
+    refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.4.0"'
+    refute_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.4.0"'
+    refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.45.1"'
+    refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v1.0.0", require: false'
+    refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.9.0"'
+    refute_includes gemfile, 'tag: "v0.1.377"'
+    refute_includes root_gemfile, 'tag: "v0.1.377"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.3.0"'
     refute_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.3.0"'
     refute_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.0.0"'
