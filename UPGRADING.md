@@ -1,5 +1,15 @@
 # Upgrading
 
+## 0.7.0
+
+This gem still requires `recording_studio` `>= 7.0`, `< 8.0`. Rails stays `~> 8.1.0`. Ruby stays 3.3 or newer.
+
+The dummy host pins Recording Studio `v7.8.0`, Flatpack `v0.2.0`, Accessible `v0.55.0`, Trashable `v1.2.3`, Cache `v0.7.1`, Root Switchable `v0.16.1`, and Metrics `v0.9.2`.
+
+Hosts MUST run the Recording Studio 7.4, 7.5 and 7.7 migrations if they have not. This gem does not ship those migrations. The dummy still omits them.
+
+flat_pack 0.2.0 is supported; hosts moving to 0.2 must remove the manual `flat_pack/heroicons` importmap pin and any `flat-pack--icon` controller registration.
+
 ## 0.6.1
 
 This gem still requires `recording_studio` `>= 7.0`, `< 8.0`. Rails stays `~> 8.1.0`. Ruby stays 3.3 or newer.

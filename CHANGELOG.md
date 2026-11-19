@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0
+
+- Pin development and dummy Recording Studio to `v7.8.0` (`~> 7.8`) and Flatpack to `v0.2.0` (`~> 0.2`).
+- Move dummy Accessible to `v0.55.0` (`~> 0.55`), Trashable to `v1.2.3` (`~> 1.2`), Cache to `v0.7.1` (`~> 0.7`), Root Switchable to `v0.16.1` (`~> 0.16`), and Metrics to `v0.9.2` (`~> 0.9`). The gemspec still requires `recording_studio` `>= 7.0`, `< 8.0`.
+- Hosts MUST run the Recording Studio 7.4, 7.5 and 7.7 migrations if they have not.
+- flat_pack 0.2.0 is supported; hosts moving to 0.2 must remove the manual `flat_pack/heroicons` importmap pin and any `flat-pack--icon` controller registration.
+- Dummy schema does not copy Recording Studio 7.4's root-type creation index, 7.5's root invariant, or 7.7's root index replacement. Those stay out of this dummy.
+- Compare [v0.6.1...v0.7.0](https://github.com/bowerbird-app/RecordingStudio_external_embed/compare/v0.6.1...v0.7.0).
+
 ## 0.6.1
 
 - Pin development and dummy Recording Studio to `v7.7.1` and Flatpack to `v0.1.378`.
